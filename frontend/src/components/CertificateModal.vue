@@ -52,14 +52,13 @@
             </div>
             
             <div class="text-center w-1/3 opacity-80 print:opacity-100">
-               <p class="text-[7px] sm:text-xs text-slate-400 font-medium tracking-widest print:text-base leading-tight">CLASS PET HOUSE</p>
+               <p class="text-[7px] sm:text-xs text-slate-400 font-medium tracking-widest print:text-base leading-tight">石榴果亲子成长中心</p>
             </div>
 
             <div class="text-right w-1/3 flex flex-col items-end">
               <p class="text-[8px] sm:text-sm text-slate-400 font-bold mb-0.5 print:text-xl">教师查收盖章:</p>
-              <div class="w-8 h-8 sm:w-16 sm:h-16 border-2 sm:border-4 border-red-500/80 rounded-full flex items-center justify-center transform rotate-12 bg-white/50 print:w-32 print:h-32 print:border-8 print:border-red-500">
-                 <span class="text-red-500/80 font-black text-[7px] sm:text-sm tracking-tighter transform -rotate-12 print:text-3xl leading-none">优秀<br>认证</span>
-              </div>
+              <img src="/logo.png" alt="优秀认证"
+                class="w-8 h-8 sm:w-16 sm:h-16 print:w-32 print:h-32 object-contain" />
             </div>
           </div>
 

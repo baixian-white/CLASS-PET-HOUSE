@@ -9,7 +9,7 @@
         <!-- 第一行: 左侧班级 & 右侧操作 -->
         <div class="flex items-center justify-between gap-2 z-10 min-w-0">
           <button @click="showClassModal = true" class="group max-w-full flex items-center gap-2 text-slate-700 font-bold bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-full transition-colors border border-slate-100">
-            <span class="text-lg drop-shadow-sm">🐾</span> 
+            <img src="/logo.png" alt="logo" class="w-6 h-6 sm:w-7 sm:h-7 drop-shadow-sm" />
             <span class="text-sm font-bold tracking-wide truncate max-w-[9rem] sm:max-w-[18rem] md:max-w-[24rem]">{{ classStore.currentClass?.name || '默认班级' }}</span>
             <span class="text-[10px] text-slate-400">▼</span>
           </button>

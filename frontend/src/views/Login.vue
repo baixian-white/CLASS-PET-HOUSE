@@ -1,7 +1,10 @@
 <template>
   <div class="min-h-screen bg-theme flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
-      <h1 class="text-2xl font-bold text-center text-gray-700 mb-2">🐾 石榴果宠物屋</h1>
+      <h1 class="text-2xl font-bold text-center text-gray-700 mb-2 flex items-center justify-center gap-2">
+        <img src="/logo.png" alt="logo" class="w-14 h-14 sm:w-16 sm:h-16" />
+        石榴果宠物屋
+      </h1>
       <p class="text-center text-gray-400 mb-6">登录你的账号</p>
 
       <div v-if="error" class="bg-red-50 text-red-500 text-sm p-3 rounded-lg mb-4">{{ error }}</div>

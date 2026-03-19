@@ -26,8 +26,6 @@
       <div v-if="student.pet_type && !batchMode" class="flex gap-1">
         <button class="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center bg-slate-100/90 rounded-full text-[10px] sm:text-xs text-slate-400 hover:text-sky-500 hover:bg-sky-50 transition-all active:scale-90" title="保存收集卡"
           @click.stop="$emit('print-cert')">🖨️</button>
-        <button class="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center bg-violet-50 rounded-full text-[10px] sm:text-xs text-violet-400 hover:text-violet-600 hover:bg-violet-100 transition-all active:scale-90" title="AI评语"
-          @click.stop="$emit('ai-evaluate')">✨</button>
         <button class="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center bg-slate-100/90 rounded-full text-[10px] sm:text-xs text-slate-400 hover:text-accent hover:bg-red-50 transition-all active:scale-90" title="更换宠物"
           @click.stop="$emit('change-pet')">🔄</button>
       </div>
