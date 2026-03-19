@@ -26,7 +26,6 @@ logs/
 
 # Databases (SQLite)
 *.db
-!backend/class_pets.db
 *.sqlite
 *.sqlite3
 *.db-journal
@@ -43,5 +42,4 @@ desktop.ini
 # Tooling / misc
 .agents/
 localhost.session.sql
-package-lock.json
 .npmrc
