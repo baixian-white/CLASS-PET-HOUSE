@@ -9,6 +9,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
+# esbuild install script can fail with ETXTBSY on some overlayfs setups.
+# Pin a stable binary and point the installer to it.
+ARG ESBUILD_VERSION=0.27.3
+RUN npm i -g esbuild@${ESBUILD_VERSION}
+ENV ESBUILD_BINARY_PATH=/usr/local/bin/esbuild
+
 # Backend deps
 COPY backend/package*.json backend/
 RUN cd backend && npm ci --omit=dev
