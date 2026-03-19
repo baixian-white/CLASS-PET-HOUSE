@@ -31,14 +31,14 @@
       </div>
     </div>
 
-    <!-- 宠物图片区 -->
-    <div class="flex justify-center items-center relative my-1 sm:my-3 h-28 sm:h-40 md:h-44">
+    <!-- 宠物图片区 --> 
+    <div class="flex justify-center items-center relative my-1 sm:my-3 h-32 sm:h-44 md:h-48">
       <div v-if="!student.pet_type" class="w-14 h-14 sm:w-28 sm:h-28 flex items-center justify-center text-3xl sm:text-5xl bg-slate-50/60 rounded-full border border-slate-100">
         🥚
       </div>
       <div v-else class="relative w-full h-full flex justify-center items-center animate-float-idle">
         <img v-if="petImageUrl" :src="petImageUrl" :alt="student.pet_name || '宠物'"
-          class="max-w-[90%] max-h-[90%] object-contain transition-transform duration-500 drop-shadow-md"
+          class="max-w-[95%] max-h-[95%] object-contain transition-transform duration-500 drop-shadow-md"
           :class="{ 'animate-bounce': justScored }"
           :style="{ transform: `scale(${petScale})` }" />
         <div v-else class="w-14 h-14 sm:w-28 sm:h-28 flex items-center justify-center text-[10px] sm:text-sm bg-slate-50 rounded-full border border-dashed border-red-200 text-red-300 font-bold text-center p-1">

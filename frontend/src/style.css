@@ -50,6 +50,20 @@ body {
   overflow-y: auto;
 }
 
+/* Global UI scale */
+#root {
+  zoom: 1.1;
+}
+
+@supports not (zoom: 1) {
+  #root {
+    transform: scale(1.1);
+    transform-origin: top center;
+    width: 90.909%;
+    margin: 0 auto;
+  }
+}
+
 /* Global SVG Noise Overlay to create tactile paper/glass texture */
 body::after {
   content: "";
