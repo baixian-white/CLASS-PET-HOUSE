@@ -46,7 +46,9 @@ nvm use 20
 
 ---
 
-## 3. 拉取项目代码
+## 3. 获取项目代码
+
+### 方案 A：Git 克隆（推荐）
 
 推荐部署目录：`/opt/CLASS-PET-HOUSE`
 ```bash
@@ -57,6 +59,45 @@ cd /opt
 git clone <你的仓库地址> CLASS-PET-HOUSE
 cd /opt/CLASS-PET-HOUSE
 ```
+
+### 方案 B：ZIP 上传（国内拉取慢时）
+
+本地打包示例（在本地机器执行）：
+```bash
+# 先构建前端（如果本地已构建可跳过）
+cd frontend
+npm ci
+npm run build
+cd ..
+
+# 打包（排除 .git / node_modules / 数据库 / .env）
+tar -czf class-pet-house.tgz \
+  backend \
+  frontend/dist \
+  deploy \
+  README.md \
+  --exclude=backend/node_modules \
+  --exclude=frontend/node_modules \
+  --exclude=backend/class_pets.db \
+  --exclude=backend/.env \
+  --exclude=.git
+```
+
+上传到服务器：
+```bash
+scp class-pet-house.tgz ubuntu@<你的公网IP>:/opt/
+```
+
+服务器解压：
+```bash
+sudo mkdir -p /opt/CLASS-PET-HOUSE
+sudo chown -R $USER:$USER /opt/CLASS-PET-HOUSE
+tar -xzf /opt/class-pet-house.tgz -C /opt/CLASS-PET-HOUSE --strip-components=1
+```
+
+注意：
+1. 不要覆盖 `backend/.env` 与 `backend/class_pets.db`（生产数据）。
+1. 如果使用 zip，请先安装 `unzip`，并将压缩包解压到 `/opt/CLASS-PET-HOUSE`。
 
 ---
 
