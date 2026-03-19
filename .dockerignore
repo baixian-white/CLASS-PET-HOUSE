@@ -1,0 +1,14 @@
+.git
+.github
+.vscode
+.idea
+**/node_modules
+**/dist
+**/.env
+backend/class_pets.db
+data
+coverage
+npm-debug.log
+yarn-error.log
+*.tgz
+*.zip
