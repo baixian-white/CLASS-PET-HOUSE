@@ -174,7 +174,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useClassStore } from '../stores/class'
 import { useTheme } from '../composables/useTheme'
@@ -242,17 +242,39 @@ function toggleStudent(id) {
   }
 }
 
-const validStudents = computed(() => classStore.students.filter(s => s.pet_type))
+const filteredStudents = computed(() => {
+  let list = classStore.students || []
+
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    list = list.filter(s => (s.name || '').toLowerCase().includes(q))
+  }
+
+  if (activeGroup.value === 'ungrouped') {
+    list = list.filter(s => !s.group_id)
+  } else if (activeGroup.value) {
+    list = list.filter(s => s.group_id === activeGroup.value)
+  }
+
+  return list
+})
+
+const selectableStudents = computed(() => filteredStudents.value.filter(s => s.pet_type))
 
 const isAllSelected = computed(() => {
-  return validStudents.value.length > 0 && selectedIds.value.length === validStudents.value.length
+  if (!selectableStudents.value.length) return false
+  const selectedSet = new Set(selectedIds.value)
+  return selectableStudents.value.every(s => selectedSet.has(s.id))
 })
 
 function toggleSelectAll() {
   if (isAllSelected.value) {
-    selectedIds.value = []
+    const visibleIds = new Set(selectableStudents.value.map(s => s.id))
+    selectedIds.value = selectedIds.value.filter(id => !visibleIds.has(id))
   } else {
-    selectedIds.value = validStudents.value.map(s => s.id)
+    const selectedSet = new Set(selectedIds.value)
+    selectableStudents.value.forEach(s => selectedSet.add(s.id))
+    selectedIds.value = Array.from(selectedSet)
   }
 }
 
@@ -287,6 +309,17 @@ onMounted(async () => {
     }
   } catch {}
 })
+
+watch(
+  () => route.path,
+  (path) => {
+    if (path !== '/') {
+      groupMode.value = false
+      activeGroup.value = null
+      exitBatch()
+    }
+  }
+)
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', updateTopPanelHeight)
