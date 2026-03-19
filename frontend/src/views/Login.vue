@@ -9,22 +9,26 @@
 
       <div v-if="error" class="bg-red-50 text-red-500 text-sm p-3 rounded-lg mb-4">{{ error }}</div>
 
-      <div class="space-y-4">
+      <form class="space-y-4" autocomplete="off" @submit.prevent="handleLogin">
         <div>
           <label class="block text-sm text-gray-500 mb-1">用户名</label>
           <input v-model="username" type="text" placeholder="请输入用户名"
+            autocomplete="off" autocapitalize="off" spellcheck="false"
+            data-1p-ignore="true" data-lpignore="true" data-bwignore="true"
             class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-accent ring-accent outline-none transition" />
         </div>
         <div>
           <label class="block text-sm text-gray-500 mb-1">密码</label>
-          <input v-model="password" type="password" placeholder="请输入密码" @keyup.enter="handleLogin"
+          <input v-model="password" type="password" placeholder="请输入密码"
+            autocomplete="new-password" autocapitalize="off" spellcheck="false"
+            data-1p-ignore="true" data-lpignore="true" data-bwignore="true"
             class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-accent ring-accent outline-none transition" />
         </div>
-        <button @click="handleLogin" :disabled="loading"
+        <button type="submit" :disabled="loading"
           class="w-full py-3 bg-accent bg-accent-hover text-white rounded-xl font-medium transition active:scale-95 disabled:opacity-50">
           {{ loading ? '登录中...' : '登录' }}
         </button>
-      </div>
+      </form>
 
       <div class="mt-4 text-center text-sm text-gray-400 space-x-4">
         <router-link to="/register" class="hover:text-accent">注册账号</router-link>

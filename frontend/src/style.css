@@ -50,17 +50,25 @@ body {
   overflow-y: auto;
 }
 
-/* Global UI scale */
+/* Global UI scale (desktop only) */
 #root {
-  zoom: 1.1;
+  zoom: 1;
+}
+
+@media (min-width: 1024px) {
+  #root {
+    zoom: 1.1;
+  }
 }
 
 @supports not (zoom: 1) {
-  #root {
-    transform: scale(1.1);
-    transform-origin: top center;
-    width: 90.909%;
-    margin: 0 auto;
+  @media (min-width: 1024px) {
+    #root {
+      transform: scale(1.1);
+      transform-origin: top center;
+      width: 90.909%;
+      margin: 0 auto;
+    }
   }
 }
 
@@ -158,6 +166,15 @@ body::after {
   ::-webkit-scrollbar {
     width: 0;
     height: 0;
+  }
+}
+
+/* iOS: prevent input zoom */
+@media (max-width: 640px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
   }
 }
 

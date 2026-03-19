@@ -6,7 +6,7 @@
         共 {{ badges.length }} 枚徽章
       </p>
 
-      <div v-if="badges.length" class="grid grid-cols-4 gap-3">
+      <div v-if="badges.length" class="grid grid-cols-3 min-[360px]:grid-cols-4 gap-3">
         <div v-for="(badge, i) in badges" :key="i"
           class="flex flex-col items-center p-2 rounded-xl bg-yellow-50 border border-yellow-200">
           <img :src="getBadgeImage(badge)" class="w-12 h-12 object-contain" />

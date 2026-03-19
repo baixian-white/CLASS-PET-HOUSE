@@ -2,20 +2,6 @@
   <div class="max-w-4xl mx-auto space-y-6">
     <h2 class="text-xl font-bold text-gray-700">⚙️ 设置</h2>
 
-    <!-- 系统名称 & 班级名称 -->
-    <div class="bg-white rounded-2xl p-5 shadow-sm space-y-4">
-      <div>
-        <label class="block text-sm text-gray-500 mb-1">系统名称</label>
-        <input v-model="systemName" type="text"
-          class="w-full px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-accent" />
-      </div>
-      <div>
-        <label class="block text-sm text-gray-500 mb-1">当前班级名称</label>
-        <input v-model="className" type="text"
-          class="w-full px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-accent" />
-      </div>
-    </div>
-
     <!-- 学生名单管理 -->
     <div class="bg-white rounded-2xl p-5 shadow-sm">
       <h3 class="font-bold text-gray-700 mb-3">👨‍🎓 学生名单管理</h3>
@@ -136,14 +122,7 @@
         class="w-full py-2 bg-theme-light text-theme rounded-lg text-sm hover:opacity-80">🎲 随机分组</button>
       <button @click="resetAllProgress"
         class="w-full py-2 bg-red-50 text-red-500 rounded-lg text-sm hover:bg-red-100">🔄 全班进度重置</button>
-      <div v-if="classStore.classes.length > 1" class="flex gap-2 items-center">
-        <select v-model="copyFromClassId" class="flex-1 px-3 py-2 rounded-lg border text-sm outline-none">
-          <option value="">选择源班级</option>
-          <option v-for="c in classStore.classes.filter(c => c.id !== classStore.currentClass?.id)" :key="c.id" :value="c.id">{{ c.name }}</option>
-        </select>
-        <button @click="copyConfig" :disabled="!copyFromClassId"
-          class="px-4 py-2 bg-accent text-white rounded-lg text-sm disabled:opacity-50">📋 复制配置</button>
-      </div>
+      <!-- ????????? -->
     </div>
 
     <!-- 🤖 AI 智能助手 -->
@@ -205,8 +184,6 @@ const classStore = useClassStore()
 const authStore = useAuthStore()
 const { setTheme } = useTheme()
 
-const systemName = ref('')
-const className = ref('')
 const newStudentName = ref('')
 const showBatchAdd = ref(false)
 const rules = ref([])
@@ -269,8 +246,6 @@ const themes = [
 
 async function loadClassData() {
   if (!classStore.currentClass) return
-  systemName.value = classStore.currentClass.system_name || ''
-  className.value = classStore.currentClass.name || ''
   currentTheme.value = classStore.currentClass.theme || 'pink'
   growthStagesText.value = (classStore.currentClass.growth_stages || [0,5,10,20,30,45,60,75,90,100]).join(',')
   await Promise.all([
@@ -456,8 +431,6 @@ function handleLogout() {
 async function saveSettings() {
   try {
     const updateData = {
-      system_name: systemName.value,
-      name: className.value,
       theme: currentTheme.value
     }
     // 解析成长阶段

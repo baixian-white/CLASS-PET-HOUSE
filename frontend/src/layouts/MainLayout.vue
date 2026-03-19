@@ -1,13 +1,13 @@
 <template>
   <div class="min-h-screen text-gray-800 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-4 overflow-x-hidden" :style="{ backgroundColor: 'var(--theme-bg, #fef5b5)' }">
     <!-- 顶部主控面板 -->
-    <div ref="topPanelRef" class="fixed top-0 left-0 right-0 z-50 pt-2 pb-2 px-3 sm:px-4 md:px-6 lg:px-8 pointer-events-none flex justify-center">
+    <div ref="topPanelRef" class="fixed top-0 left-0 right-0 z-50 pt-[calc(0.5rem+env(safe-area-inset-top))] pb-2 px-3 sm:px-4 md:px-6 lg:px-8 pointer-events-none flex justify-center">
       <div class="w-full max-w-[1600px] 2xl:max-w-[1800px] bg-white/95 backdrop-blur-3xl rounded-[1.5rem] sm:rounded-[2rem] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.1)] p-3 sm:p-4 flex flex-col md:flex-row md:items-center gap-2 md:gap-4 pointer-events-auto border border-white relative overflow-hidden">
         <!-- 装饰性元素 -->
         <div class="absolute -left-10 -top-10 w-24 h-24 bg-cyan-400 rounded-full blur-[40px] opacity-20 pointer-events-none"></div>
 
         <!-- 第一行: 左侧班级 & 右侧操作 -->
-        <div class="flex items-center justify-between gap-2 z-10 min-w-0">
+        <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 gap-y-2 z-10 min-w-0">
           <button @click="showClassModal = true" class="group max-w-full flex items-center gap-2 text-slate-700 font-bold bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-full transition-colors border border-slate-100">
             <img src="/logo.png" alt="logo" class="w-6 h-6 sm:w-7 sm:h-7 drop-shadow-sm" />
             <span class="text-sm font-bold tracking-wide truncate max-w-[9rem] sm:max-w-[18rem] md:max-w-[24rem]">{{ classStore.currentClass?.name || '默认班级' }}</span>
@@ -15,7 +15,7 @@
           </button>
 
           <!-- 功能按钮 -->
-          <div v-if="route.path === '/'" class="flex shrink-0 items-center justify-end gap-1.5">
+          <div v-if="route.path === '/'" class="flex w-full sm:w-auto shrink-0 items-center justify-end gap-1.5">
             <button @click="batchMode = !batchMode; if (batchMode) groupMode = false"
               class="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-colors border"
               :class="batchMode ? 'bg-accent text-white border-accent shadow-md shadow-accent/20' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50 shadow-sm'">
@@ -74,8 +74,8 @@
     </div>
     <div :style="{ height: `${topPanelHeight}px` }"></div>
 
-    <!-- 分组筛选栏 (极简高级圆角) -->
-    <div v-if="classStore.groups.length" class="max-w-[1600px] 2xl:max-w-[1800px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 mb-4 relative z-40">
+    <!-- 分组筛选栏 (仅首页显示) -->
+    <div v-if="route.path === '/' && classStore.groups.length" class="max-w-[1600px] 2xl:max-w-[1800px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 mb-4 relative z-40">
       <div class="bg-white/60 backdrop-blur-md border border-white/80 rounded-full px-1.5 py-1.5 flex gap-1.5 overflow-x-auto shadow-sm w-full sm:w-auto">
         <button @click="activeGroup = null; groupMode = false"
           :class="activeGroup === null ? 'bg-accent/10 text-accent font-extrabold' : 'text-slate-500 hover:bg-white/60'"

@@ -1,6 +1,6 @@
 <template>
-  <div class="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center" @click.self="$emit('close')">
-    <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-xl w-full sm:max-w-3xl max-h-[92vh] sm:max-h-[85vh] flex flex-col overflow-hidden">
+  <div class="fixed inset-0 bg-black/40 z-[1000] flex items-end sm:items-center justify-center" @click.self="$emit('close')">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-xl w-full sm:max-w-3xl max-h-[92vh] sm:max-h-[85vh] flex flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]">
       
       <!-- 渐变头部 -->
       <div class="shrink-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-fuchsia-500 px-5 py-4 sm:px-6 sm:py-5 relative">
