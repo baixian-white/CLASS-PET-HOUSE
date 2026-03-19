@@ -15,9 +15,9 @@ ARG ESBUILD_VERSION=0.27.3
 RUN npm i -g esbuild@${ESBUILD_VERSION}
 ENV ESBUILD_BINARY_PATH=/usr/local/bin/esbuild
 
-# Backend deps
+# Backend deps (force sqlite3 to build from source to match runtime glibc)
 COPY backend/package*.json backend/
-RUN cd backend && npm ci --omit=dev
+RUN cd backend && npm ci --omit=dev --build-from-source=sqlite3
 
 # Frontend deps + build
 COPY frontend/package*.json frontend/
