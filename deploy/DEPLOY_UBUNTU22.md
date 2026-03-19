@@ -50,14 +50,14 @@ nvm use 20
 
 ### 方案 A：Git 克隆（推荐）
 
-推荐部署目录：`/opt/CLASS-PET-HOUSE`
+推荐部署目录：`/root/CODE/class-pet-house-main`
 ```bash
-sudo mkdir -p /opt
-sudo chown -R $USER:$USER /opt
+sudo mkdir -p /root/CODE
+sudo chown -R $USER:$USER /root/CODE
 
-cd /opt
-git clone <你的仓库地址> CLASS-PET-HOUSE
-cd /opt/CLASS-PET-HOUSE
+cd /root/CODE
+git clone <你的仓库地址> class-pet-house-main
+cd /root/CODE/class-pet-house-main
 ```
 
 ### 方案 B：ZIP 上传（国内拉取慢时）
@@ -85,19 +85,19 @@ tar -czf class-pet-house.tgz \
 
 上传到服务器：
 ```bash
-scp class-pet-house.tgz ubuntu@<你的公网IP>:/opt/
+scp class-pet-house.tgz root@<你的公网IP>:/root/
 ```
 
 服务器解压：
 ```bash
-sudo mkdir -p /opt/CLASS-PET-HOUSE
-sudo chown -R $USER:$USER /opt/CLASS-PET-HOUSE
-tar -xzf /opt/class-pet-house.tgz -C /opt/CLASS-PET-HOUSE --strip-components=1
+sudo mkdir -p /root/CODE/class-pet-house-main
+sudo chown -R $USER:$USER /root/CODE/class-pet-house-main
+tar -xzf /root/class-pet-house.tgz -C /root/CODE/class-pet-house-main --strip-components=1
 ```
 
 注意：
 1. 不要覆盖 `backend/.env` 与 `backend/class_pets.db`（生产数据）。
-1. 如果使用 zip，请先安装 `unzip`，并将压缩包解压到 `/opt/CLASS-PET-HOUSE`。
+1. 如果使用 zip，请先安装 `unzip`，并将压缩包解压到 `/root/CODE/class-pet-house-main`。
 
 ---
 
@@ -111,7 +111,7 @@ cp backend/.env.example backend/.env
 建议修改 `backend/.env`（示例）：
 ```env
 # SQLite 数据库文件路径（建议用绝对路径）
-DB_STORAGE=/opt/CLASS-PET-HOUSE/backend/class_pets.db
+DB_STORAGE=/root/CODE/class-pet-house-main/backend/class_pets.db
 
 # JWT
 JWT_SECRET=请改成复杂随机串
@@ -137,7 +137,7 @@ AI_MODEL=deepseek-chat
 
 ## 5. 安装依赖并构建前端
 ```bash
-cd /opt/CLASS-PET-HOUSE
+cd /root/CODE/class-pet-house-main
 
 # 后端依赖（生产环境）
 cd backend
@@ -159,7 +159,7 @@ cd ..
 
 生产环境默认不自动建表，需先初始化一次：
 ```bash
-cd /opt/CLASS-PET-HOUSE
+cd /root/CODE/class-pet-house-main
 node backend/db-init.js
 ```
 
@@ -173,12 +173,12 @@ node backend/db-init.js
 ```bash
 sudo npm i -g pm2
 
-cd /opt/CLASS-PET-HOUSE
+cd /root/CODE/class-pet-house-main
 pm2 start deploy/ecosystem.config.json
 pm2 status
 ```
 
-`deploy/ecosystem.config.json` 固定了 `cwd=/opt/CLASS-PET-HOUSE/backend`，
+`deploy/ecosystem.config.json` 固定了 `cwd=/root/CODE/class-pet-house-main/backend`，
 若部署路径不同，请修改该文件。
 
 设置开机自启：
@@ -206,12 +206,14 @@ sudo systemctl enable nginx
 
 复制 `deploy/nginx.conf`：
 ```bash
-sudo cp /opt/CLASS-PET-HOUSE/deploy/nginx.conf /etc/nginx/conf.d/class-pet-house.conf
+sudo cp /root/CODE/class-pet-house-main/deploy/nginx.conf /etc/nginx/conf.d/class-pet-house.conf
 ```
 
 编辑 `/etc/nginx/conf.d/class-pet-house.conf`：
 1. 将 `server_name` 改为你的域名或公网 IP
-1. 确认 `root` 指向 `/opt/CLASS-PET-HOUSE/frontend/dist`
+1. 确认 `root` 指向 `/root/CODE/class-pet-house-main/frontend/dist`
+1. 注意：Nginx 默认用户为 `www-data`，若项目放在 `/root` 下可能无访问权限。
+1. 若页面 403/404，可改为放到 `/var/www` 或 `/srv`，或调整目录权限。
 
 测试并重启：
 ```bash
@@ -236,7 +238,7 @@ http://your-domain.com
 ## 10. 更新部署流程（后续版本）
 
 ```bash
-cd /opt/CLASS-PET-HOUSE
+cd /root/CODE/class-pet-house-main
 git pull
 
 # 后端更新依赖

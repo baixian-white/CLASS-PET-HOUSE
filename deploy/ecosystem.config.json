@@ -2,7 +2,7 @@
   "apps": [{
     "name": "class-pet-house",
     "script": "src/server.js",
-    "cwd": "/opt/CLASS-PET-HOUSE/backend",
+    "cwd": "/root/CODE/class-pet-house-main/backend",
     "env": {
       "NODE_ENV": "production",
       "PORT": 3000
