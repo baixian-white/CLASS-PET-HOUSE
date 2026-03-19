@@ -58,16 +58,22 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
-// 生产环境：serve前端静态文件
+// 生产环境：可选 serve 前端静态文件（找不到 dist 时不阻塞后端）
 if (process.env.NODE_ENV === 'production') {
+  const fs = require('fs');
   const frontendDist = path.join(__dirname, '../../frontend/dist');
-  app.use(express.static(frontendDist));
-  // SPA fallback：所有非API请求返回index.html
-  app.get(/(.*)/, (req, res) => {
-    if (!req.path.startsWith('/api/')) {
-      res.sendFile(path.join(frontendDist, 'index.html'));
-    }
-  });
+  const indexHtml = path.join(frontendDist, 'index.html');
+  if (fs.existsSync(indexHtml)) {
+    app.use(express.static(frontendDist));
+    // SPA fallback：所有非API请求返回index.html
+    app.get(/(.*)/, (req, res) => {
+      if (!req.path.startsWith('/api/')) {
+        res.sendFile(indexHtml);
+      }
+    });
+  } else {
+    console.warn(`[static] frontend dist not found: ${indexHtml}`);
+  }
 }
 
 module.exports = app;
