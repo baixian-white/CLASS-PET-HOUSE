@@ -1,0 +1,4 @@
+export const LIMITS = {
+  MAX_CLASSES_PER_USER: 20,
+  MAX_STUDENTS_PER_CLASS: 100
+}

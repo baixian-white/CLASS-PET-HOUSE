@@ -36,10 +36,20 @@ const groupRoutes = require('./routes/groups');
 const historyRoutes = require('./routes/history');
 const shopRoutes = require('./routes/shop');
 const scoreRuleRoutes = require('./routes/scoreRules');
-const exportRoutes = require('./routes/export');
 const adminRoutes = require('./routes/admin');
 const { router: syncRouter } = require('./routes/sync');
 const aiRoutes = require('./routes/ai');
+
+let exportRoutes;
+try {
+  exportRoutes = require('./routes/export');
+} catch (err) {
+  console.error('⚠️ 导出模块加载失败，导出接口已禁用:', err.message);
+  exportRoutes = express.Router();
+  exportRoutes.use((req, res) => {
+    res.status(503).json({ error: '导出功能暂不可用，请先修复 canvas 依赖' });
+  });
+}
 
 app.use('/api/auth', authRoutes);
 app.use('/api/classes', classRoutes);

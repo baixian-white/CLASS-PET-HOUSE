@@ -75,7 +75,7 @@
     <div :style="{ height: `${topPanelHeight}px` }"></div>
 
     <!-- 分组筛选栏 (极简高级圆角) -->
-    <div v-if="classStore.groups.length" class="max-w-[1600px] 2xl:max-w-[1800px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 mb-4 relative z-40">
+    <div v-if="route.path === '/' && classStore.groups.length" class="max-w-[1600px] 2xl:max-w-[1800px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 mb-4 relative z-40">
       <div class="bg-white/60 backdrop-blur-md border border-white/80 rounded-full px-1.5 py-1.5 flex gap-1.5 overflow-x-auto shadow-sm w-full sm:w-auto">
         <button @click="activeGroup = null; groupMode = false"
           :class="activeGroup === null ? 'bg-accent/10 text-accent font-extrabold' : 'text-slate-500 hover:bg-white/60'"
@@ -114,16 +114,22 @@
     </main>
 
     <!-- 批量操作底栏 (浮动卡片式) 注意移动端高度需要更高以避开TabBar -->
-    <div v-if="batchMode" class="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] md:bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.2)] border-2 border-white rounded-2xl px-4 sm:px-6 py-4 flex flex-col md:flex-row items-center gap-4 md:gap-6 z-50 w-[calc(100%-1rem)] sm:w-[90%] md:w-auto max-w-sm md:max-w-none">
-      <span class="font-bold text-gray-600">已选 <span class="text-accent text-xl mx-1">{{ selectedIds.length }}</span> 人</span>
-      <div class="flex gap-3">
-        <button @click="toggleSelectAll" class="btn-toy px-5 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-bold text-gray-600">
-          {{ isAllSelected ? '取消全选' : '全选同学们' }}
-        </button>
-        <button @click="showBatchScoreModal = true" :disabled="!selectedIds.length"
-          class="btn-toy px-6 py-2.5 bg-accent text-white rounded-xl text-sm font-bold disabled:opacity-50 shadow-[0_4px_0_var(--theme-shadow-hard)] flex items-center gap-2">
-          <span class="text-lg">✨</span> 批量喂养
-        </button>
+    <div v-if="route.path === '/' && batchMode" class="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] md:bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1rem)] sm:w-[90%] md:w-auto max-w-[calc(100%-1rem)]">
+      <div class="bg-white/90 backdrop-blur-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.2)] border-2 border-white rounded-2xl px-4 sm:px-6 py-4 flex flex-col md:flex-row items-center gap-4 md:gap-6 w-full md:w-auto max-w-sm md:max-w-none">
+        <span class="font-bold text-gray-600">已选 <span class="text-accent text-xl mx-1">{{ selectedIds.length }}</span> 人</span>
+        <div class="flex gap-3">
+          <button @click="toggleSelectAll" class="btn-toy px-5 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-bold text-gray-600">
+            {{ isAllSelected ? '取消全选' : '全选同学们' }}
+          </button>
+          <button @click="showBatchScoreModal = true" :disabled="!selectedIds.length"
+            class="btn-toy px-6 py-2.5 bg-accent text-white rounded-xl text-sm font-bold disabled:opacity-50 shadow-[0_4px_0_var(--theme-shadow-hard)] flex items-center gap-2">
+            <span class="text-lg">✨</span> 批量喂养
+          </button>
+          <button @click="exitBatch"
+            class="btn-toy px-5 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-bold text-gray-600">
+            取消批量
+          </button>
+        </div>
       </div>
     </div>
 
@@ -174,7 +180,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useClassStore } from '../stores/class'
 import { useTheme } from '../composables/useTheme'
@@ -242,17 +248,37 @@ function toggleStudent(id) {
   }
 }
 
-const validStudents = computed(() => classStore.students.filter(s => s.pet_type))
+const batchVisibleStudents = computed(() => {
+  let list = classStore.students || []
+
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    list = list.filter(student => (student.name || '').toLowerCase().includes(q))
+  }
+
+  if (activeGroup.value === 'ungrouped') {
+    list = list.filter(student => !student.group_id)
+  } else if (activeGroup.value) {
+    list = list.filter(student => student.group_id === activeGroup.value)
+  }
+
+  return list
+})
+
+const batchVisibleIds = computed(() => batchVisibleStudents.value.map(student => student.id))
 
 const isAllSelected = computed(() => {
-  return validStudents.value.length > 0 && selectedIds.value.length === validStudents.value.length
+  if (!batchVisibleIds.value.length) {
+    return false
+  }
+  return batchVisibleIds.value.every(id => selectedIds.value.includes(id))
 })
 
 function toggleSelectAll() {
   if (isAllSelected.value) {
-    selectedIds.value = []
+    selectedIds.value = selectedIds.value.filter(id => !batchVisibleIds.value.includes(id))
   } else {
-    selectedIds.value = validStudents.value.map(s => s.id)
+    selectedIds.value = [...batchVisibleIds.value]
   }
 }
 
@@ -260,6 +286,20 @@ function exitBatch() {
   batchMode.value = false
   selectedIds.value = []
 }
+
+watch(batchVisibleIds, (visibleIds) => {
+  if (!batchMode.value) {
+    return
+  }
+  const visibleSet = new Set(visibleIds)
+  selectedIds.value = selectedIds.value.filter(id => visibleSet.has(id))
+}, { immediate: true })
+
+watch(batchMode, (enabled) => {
+  if (!enabled) {
+    selectedIds.value = []
+  }
+})
 
 async function onBatchScored() {
   showBatchScoreModal.value = false

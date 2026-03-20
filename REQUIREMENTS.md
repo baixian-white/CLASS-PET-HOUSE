@@ -137,8 +137,8 @@ french-bulldog(法斗), black-cat(黑猫), tabby(虎斑), garfield(加菲猫), g
 golden-retriever(金毛), orange-cat(橘猫), corgi(柯基), labrador(拉布拉多), blue-cat(蓝猫),
 samoyed(萨摩耶), calico(三花), teddy(泰迪), siamese(暹罗猫), silver-shaded(银渐层),
 rabbit(小兔子), squirrel(松鼠), panda(熊猫), turtle(乌龟), hamster(仓鼠),
-polar-bear(大白熊), monkey(猴子), piglet(小猪仔), duck(鸭子), lihua-cat(狸花猫),
-nine-tailed-fox(九尾狐), capybara(卡皮巴拉), schnauzer(雪瑞纳), chinese-rural-dog(中华田园犬),
+polar-bear(大白熊), monkey(猴子), duck(鸭子), lihua-cat(狸花猫),
+nine-tailed-fox(九尾狐), capybara(卡皮巴拉), chinese-rural-dog(中华田园犬),
 chihuahua(吉娃娃), westie(西高地), lamb(小羊羔), horse(马), penguin(企鹅), tiger(老虎),
 leopard(豹子), dinosaur(恐龙), chick(小黄鸡), parrot(鹦鹉), fox(狐狸), frog(青蛙),
 crocodile(鳄鱼), elephant(大象), sika-deer(梅花鹿), chameleon(变色龙)

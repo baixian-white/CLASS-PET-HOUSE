@@ -18,15 +18,22 @@
 
     <!-- 学生名单管理 -->
     <div class="bg-white rounded-2xl p-5 shadow-sm">
-      <h3 class="font-bold text-gray-700 mb-3">👨‍🎓 学生名单管理</h3>
+      <div class="flex items-center justify-between gap-3 mb-1">
+        <h3 class="font-bold text-gray-700">👨‍🎓 学生名单管理</h3>
+        <span class="text-xs text-gray-400 shrink-0">{{ studentCount }}/{{ LIMITS.MAX_STUDENTS_PER_CLASS }} 人</span>
+      </div>
+      <p class="text-xs text-gray-400 mb-3">
+        {{ studentLimitReached ? `当前班级已达到 ${LIMITS.MAX_STUDENTS_PER_CLASS} 人上限` : `当前班级还可添加 ${remainingStudentSlots} 位学生` }}
+      </p>
       <div class="flex flex-col sm:flex-row gap-2 mb-3">
-        <input v-model="newStudentName" type="text" placeholder="输入学生姓名"
+        <input v-model="newStudentName" type="text" :placeholder="studentLimitReached ? '当前班级已满100人' : '输入学生姓名'"
+          :disabled="studentLimitReached"
           @keyup.enter="addStudent"
-          class="flex-1 px-3 py-2 rounded-lg border border-gray-200 outline-none text-sm" />
-        <button @click="addStudent"
-          class="px-4 py-2 bg-accent text-white rounded-lg text-sm">添加</button>
-        <button @click="showBatchAdd = true"
-          class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm">批量添加</button>
+          class="flex-1 px-3 py-2 rounded-lg border border-gray-200 outline-none text-sm disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed" />
+        <button @click="addStudent" :disabled="studentLimitReached"
+          class="px-4 py-2 bg-accent text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed">添加</button>
+        <button @click="openBatchAdd" :disabled="studentLimitReached"
+          class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed">批量添加</button>
       </div>
 
       <!-- 学生列表 -->
@@ -198,6 +205,7 @@ import BatchAddModal from '../components/BatchAddModal.vue'
 import AiReportModal from '../components/AiReportModal.vue'
 import { useTheme } from '../composables/useTheme'
 import { PETS } from '../utils/pets'
+import { LIMITS } from '../constants/limits'
 import Dialog from '../utils/dialog'
 
 const router = useRouter()
@@ -214,6 +222,9 @@ const currentTheme = ref('pink')
 const selectedTemplateKeys = ref([])
 const customImportText = ref('')
 const customImportTextarea = ref(null)
+const studentCount = computed(() => classStore.students?.length || 0)
+const remainingStudentSlots = computed(() => Math.max(0, LIMITS.MAX_STUDENTS_PER_CLASS - studentCount.value))
+const studentLimitReached = computed(() => remainingStudentSlots.value <= 0)
 
 const iconLibrary = [
   '⭐', '🌟', '✨', '🏅', '📖', '📝', '✍️', '📚', '🎯', '✅',
@@ -293,6 +304,11 @@ watch(() => classStore.currentClass?.id, async (newId, oldId) => {
 
 async function addStudent() {
   if (!newStudentName.value.trim()) return
+  if (!classStore.currentClass) return
+  if (studentLimitReached.value) {
+    Dialog.alert(`一个班级最多${LIMITS.MAX_STUDENTS_PER_CLASS}位学生`)
+    return
+  }
   try {
     await api.post('/students', {
       class_id: classStore.currentClass.id,
@@ -301,6 +317,14 @@ async function addStudent() {
     newStudentName.value = ''
     await classStore.fetchStudents()
   } catch (err) { Dialog.alert(err.error || '添加失败') }
+}
+
+function openBatchAdd() {
+  if (studentLimitReached.value) {
+    Dialog.alert(`一个班级最多${LIMITS.MAX_STUDENTS_PER_CLASS}位学生`)
+    return
+  }
+  showBatchAdd.value = true
 }
 
 async function editStudent(s) {

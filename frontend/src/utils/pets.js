@@ -30,7 +30,6 @@ export const PETS = [
   { id: 'lihua-cat', name: '狸花猫', folder: '狸花猫十阶段图片' },
   { id: 'nine-tailed-fox', name: '九尾狐', folder: '九尾狐十阶段图片' },
   { id: 'capybara', name: '卡皮巴拉', folder: '卡皮巴拉十阶段图片' },
-  { id: 'schnauzer', name: '雪瑞纳', folder: '雪瑞纳十阶段图片' },
   { id: 'chinese-rural-dog', name: '中华田园犬', folder: '中华田园犬十阶段图片' },
   { id: 'chihuahua', name: '吉娃娃', folder: '吉娃娃十阶段图片' },
   { id: 'westie', name: '西高地', folder: '西高地十阶段图片' },

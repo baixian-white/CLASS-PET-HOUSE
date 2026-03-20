@@ -41,7 +41,7 @@ useEscClose(emit)
 const classStore = useClassStore()
 const loading = ref(false)
 
-const petImageUrl = computed(() => {
+const petImage = computed(() => {
   if (!props.student || !props.student.pet_type) return ''
   const pet = PETS.find(p => p.id === props.student.pet_type)
   return pet ? getPetImageUrl(pet.folder, 10) : ''

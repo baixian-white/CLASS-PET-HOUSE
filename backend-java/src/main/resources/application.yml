@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: backend-java
+  datasource:
+    # 1. 数据库连接 URL
+    # 优先读取环境变量 DB_HOST，读不到则默认为 localhost
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/scarecrow
+    # -----------------------------------------------------------------
+
+    # 2. 对应 docker-compose 中的 POSTGRES_USER
+    username: scarecrow
+
+    # 3. 对应 docker-compose 中的 POSTGRES_PASSWORD
+    password: Scarecrow@2024
+
+    # 4. PostgreSQL 驱动
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        show_sql: false
+        jdbc:
+          lob:
+            non_contextual_creation: true
+
+server:
+  port: ${SERVER_PORT:${PORT:3000}}
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true

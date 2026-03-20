@@ -4,7 +4,7 @@
     <div v-if="!isAuthenticated" class="max-w-md mx-auto mt-20 bg-white p-8 rounded-2xl shadow-xl">
       <div class="text-center mb-8">
         <h1 class="text-2xl font-bold text-slate-800">🛡️ 系统后台管理</h1>
-        <p class="text-slate-500 mt-2 text-sm">请输入.env中配置的超级管理员账密</p>
+        <p class="text-slate-500 mt-2 text-sm">请输入数据库中的管理员账号密码</p>
       </div>
       
       <div v-if="loginError" class="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4">

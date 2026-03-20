@@ -25,6 +25,11 @@ export const useAuthStore = defineStore('auth', {
       localStorage.setItem('token', data.token)
       return data
     },
+    async activate(code) {
+      const data = await api.post('/auth/activate', { code })
+      this.user = { ...(this.user || {}), ...(data.user || {}) }
+      return data
+    },
     async fetchUser() {
       const data = await api.get('/auth/me')
       this.user = data.user
@@ -33,6 +38,7 @@ export const useAuthStore = defineStore('auth', {
       this.token = null
       this.user = null
       localStorage.removeItem('token')
+      localStorage.removeItem('currentClassId')
     }
   }
 })

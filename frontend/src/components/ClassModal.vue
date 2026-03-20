@@ -19,10 +19,16 @@
       </div>
 
       <!-- 创建新班级 -->
+      <div class="flex items-center justify-between text-xs text-gray-400 mb-2">
+        <span>已创建 {{ classCount }}/{{ LIMITS.MAX_CLASSES_PER_USER }} 个班级</span>
+        <span>{{ classLimitReached ? '已达到上限' : `还可创建 ${remainingClassSlots} 个` }}</span>
+      </div>
       <div class="flex gap-2">
         <input v-model="newName" type="text" placeholder="新班级名称"
-          class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-accent" />
-        <button @click="createClass" class="px-4 py-2 bg-accent text-white rounded-lg text-sm hover:bg-accent-hover">
+          :disabled="classLimitReached"
+          class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-accent disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed" />
+        <button @click="createClass" :disabled="classLimitReached"
+          class="px-4 py-2 bg-accent text-white rounded-lg text-sm hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed">
           ➕ 创建
         </button>
       </div>
@@ -31,14 +37,18 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useClassStore } from '../stores/class'
 import api from '../utils/api'
 import Dialog from '../utils/dialog'
+import { LIMITS } from '../constants/limits'
 
 const emit = defineEmits(['close'])
 const classStore = useClassStore()
 const newName = ref('')
+const classCount = computed(() => classStore.classes.length)
+const remainingClassSlots = computed(() => Math.max(0, LIMITS.MAX_CLASSES_PER_USER - classCount.value))
+const classLimitReached = computed(() => remainingClassSlots.value <= 0)
 
 import { useEscClose } from '../composables/useEscClose'
 useEscClose(emit)
@@ -52,6 +62,10 @@ async function switchTo(cls) {
 
 async function createClass() {
   if (!newName.value.trim()) return
+  if (classLimitReached.value) {
+    Dialog.alert(`一个账号最多创建${LIMITS.MAX_CLASSES_PER_USER}个班级`)
+    return
+  }
   try {
     await api.post('/classes', { name: newName.value.trim() })
     newName.value = ''

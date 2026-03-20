@@ -5,6 +5,7 @@ const routes = [
   { path: '/login', name: 'Login', component: () => import('../views/Login.vue') },
   { path: '/register', name: 'Register', component: () => import('../views/Register.vue') },
   { path: '/reset-password', name: 'ResetPassword', component: () => import('../views/ResetPassword.vue') },
+  { path: '/activate', name: 'Activate', component: () => import('../views/Activate.vue'), meta: { requiresAuth: true } },
   { path: '/admin', name: 'AdminDashboard', component: () => import('../views/AdminDashboard.vue') },
   {
     path: '/',
@@ -29,7 +30,7 @@ router.beforeEach(async (to) => {
   const token = localStorage.getItem('token')
   if (to.meta.requiresAuth && !token) return '/login'
 
-  if (to.meta.requiresAuth && token) {
+  if (to.meta.requiresAuth && token && to.path !== '/activate') {
     const classStore = useClassStore()
     if (!classStore.initialized) {
       try {
