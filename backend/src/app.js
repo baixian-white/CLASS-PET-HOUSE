@@ -7,11 +7,29 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const app = express();
 
+// 信任反向代理（解决 Docker/Nginx 下的 429 IP 被群封限流问题）
+app.set('trust proxy', 1);
+
 // 中间件
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(sanitize);
+
+// ====== 用于排查测试 IP 是否获取正确的日志中间件 ======
+app.use((req, res, next) => {
+  // 只过滤查看登录相关的请求日志，避免不相关的接口日志太多刷屏
+  if (req.path.includes('/login')) {
+    console.log(`[IP DEBUG] Time: ${new Date().toISOString()}`);
+    console.log(`[IP DEBUG] Path: ${req.path}`);
+    console.log(`[IP DEBUG] req.ip: ${req.ip}`); 
+    console.log(`[IP DEBUG] X-Forwarded-For: ${req.headers['x-forwarded-for']}`);
+    console.log(`[IP DEBUG] Direct RemoteIP: ${req.connection.remoteAddress}`);
+    console.log("-----------------------------------------");
+  }
+  next();
+});
+// ============================================
 
 // 速率限制：认证接口
 const authLimiter = rateLimit({
