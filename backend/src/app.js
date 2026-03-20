@@ -24,7 +24,8 @@ app.use((req, res, next) => {
     console.log(`[IP DEBUG] Path: ${req.path}`);
     console.log(`[IP DEBUG] req.ip: ${req.ip}`); 
     console.log(`[IP DEBUG] X-Forwarded-For: ${req.headers['x-forwarded-for']}`);
-    console.log(`[IP DEBUG] Direct RemoteIP: ${req.connection.remoteAddress}`);
+    // 修复 Node.js 新版本中 req.connection 为 undefined 导致的 500 崩溃
+    console.log(`[IP DEBUG] Direct RemoteIP: ${req.socket?.remoteAddress}`);
     console.log("-----------------------------------------");
   }
   next();
