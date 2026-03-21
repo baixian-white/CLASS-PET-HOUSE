@@ -1,10 +1,10 @@
 <template>
   <div class="min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom))]"
-    style="background: linear-gradient(160deg, #e8f5e9 0%, #e0f7fa 50%, #fce4ec 100%)">
+    :style="pageBackgroundStyle">
 
     <!-- 顶部导航栏 -->
     <div class="fixed top-0 left-0 right-0 z-50 px-4 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-2">
-      <div class="max-w-lg mx-auto bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3 border border-white">
+      <div class="max-w-[36rem] mx-auto bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3 border border-white">
         <!-- 宠物头像 -->
         <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center overflow-hidden border border-slate-100 shrink-0">
           <img v-if="store.me?.pet_type" :src="petImageUrl" class="w-9 h-9 object-contain" />
@@ -35,13 +35,13 @@
     <div class="h-[calc(4.5rem+env(safe-area-inset-top))]"></div>
 
     <!-- 页面内容 -->
-    <main class="max-w-lg mx-auto px-4 py-4">
+    <main class="max-w-[36rem] mx-auto px-4 py-4">
       <router-view />
     </main>
 
     <!-- 底部 TabBar -->
     <div class="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-slate-100 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] pb-[env(safe-area-inset-bottom)]">
-      <nav class="max-w-lg mx-auto flex items-center justify-around px-2 py-2">
+      <nav class="max-w-[36rem] mx-auto flex items-center justify-around px-2 py-2">
         <router-link v-for="tab in tabs" :key="tab.path" :to="tab.path"
           class="flex flex-col items-center gap-0.5 w-16 h-14 justify-center rounded-2xl transition-all"
           :class="isActive(tab.path) ? 'bg-cyan-50/80 text-cyan-500' : 'text-slate-400 hover:bg-slate-50'">
@@ -57,14 +57,16 @@
 </template>
 
 <script setup>
-import { onMounted, computed } from 'vue'
+import { onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStudentStore } from '../stores/student'
+import { useTheme } from '../composables/useTheme'
 import { PETS, getPetImageUrl } from '../utils/pets'
 
 const store = useStudentStore()
 const route = useRoute()
 const router = useRouter()
+const { setTheme, THEMES } = useTheme()
 
 const tabs = [
   { path: '/student', icon: '🏠', label: '我的宠物' },
@@ -89,6 +91,22 @@ const petImageUrl = computed(() => {
     if (store.me.food_count >= stages[i]) { stage = i + 1; break }
   }
   return getPetImageUrl(pet.folder, stage)
+})
+
+watch(() => store.currentClass?.theme, (newTheme) => {
+  if (newTheme && THEMES[newTheme]) {
+    setTheme(newTheme)
+  } else {
+    setTheme('yellow') // 默认教师端配色
+  }
+}, { immediate: true })
+
+const pageBackgroundStyle = computed(() => {
+  return {
+    backgroundImage: 'linear-gradient(135deg, var(--theme-bg, #fefce8) 0%, var(--theme-light, #fef9c3) 60%, #ffffff 100%)',
+    backgroundAttachment: 'fixed',
+    minHeight: '100vh'
+  }
 })
 
 function handleLogout() {

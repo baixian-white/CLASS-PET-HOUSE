@@ -50,6 +50,8 @@ app.use('/api/student-portal/send-register-code', authLimiter);
 const petImagesStatic = express.static(path.join(__dirname, '../../assets/pets'));
 app.use('/pet-images', petImagesStatic);
 app.use('/动物图片', petImagesStatic);
+const backgroundImagesStatic = express.static(path.join(__dirname, '../../assets/背景图'));
+app.use('/pet-backgrounds', backgroundImagesStatic);
 
 // API 路由
 const authRoutes = require('./routes/auth');
@@ -62,6 +64,7 @@ const scoreRuleRoutes = require('./routes/scoreRules');
 const exportRoutes = require('./routes/export');
 const adminRoutes = require('./routes/admin');
 const { router: syncRouter } = require('./routes/sync');
+const backgroundRoutes = require('./routes/backgrounds');
 const aiRoutes = require('./routes/ai');
 const studentPortalRoutes = require('./routes/student-portal');
 
@@ -75,6 +78,7 @@ app.use('/api/score-rules', scoreRuleRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/sync', syncRouter);
+app.use('/api/backgrounds', backgroundRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/student-portal', studentPortalRoutes);
 
