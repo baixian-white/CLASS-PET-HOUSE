@@ -43,3 +43,4 @@ desktop.ini
 .agents/
 localhost.session.sql
 .npmrc
+.playwright-cli/
