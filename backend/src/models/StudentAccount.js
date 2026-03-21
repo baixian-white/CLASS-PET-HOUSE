@@ -7,6 +7,8 @@ const StudentAccount = sequelize.define('StudentAccount', {
   student_id: { type: DataTypes.INTEGER, allowNull: false, unique: true },
   class_id: { type: DataTypes.INTEGER, allowNull: false },
   username: { type: DataTypes.STRING(50), allowNull: false, unique: true },
+  invite_code: { type: DataTypes.STRING(20), allowNull: false, unique: true },
+  phone: { type: DataTypes.STRING(20), allowNull: true },
   password_hash: { type: DataTypes.STRING(255), allowNull: false },
 }, { tableName: 'student_accounts' });
 

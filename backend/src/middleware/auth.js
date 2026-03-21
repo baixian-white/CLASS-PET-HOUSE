@@ -53,6 +53,17 @@ const studentAuth = async (req, res, next) => {
       return res.status(403).json({ error: '此接口仅限学生使用' });
     }
 
+    const account = await StudentAccount.findOne({ where: { student_id: decoded.student_id } });
+    if (!account) {
+      return res.status(401).json({ error: '账号不存在或已删除' });
+    }
+    if (account.class_id !== decoded.class_id) {
+      return res.status(401).json({ error: '账号信息异常，请重新登录' });
+    }
+    if (!account.phone) {
+      return res.status(403).json({ error: '请先使用邀请码完成注册' });
+    }
+
     req.studentId = decoded.student_id;
     req.classId = decoded.class_id;
     next();

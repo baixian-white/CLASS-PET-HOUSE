@@ -44,15 +44,6 @@ cd backend && npm start
 cd frontend && npm run dev
 ```
 
-### 5. 生产部署
-
-```bash
-# 前端构建
-cd frontend && npm run build
-
-# 用 pm2 启动后端
-pm2 start backend/src/server.js --name class-pet-house
-```
 
 ## 功能列表
 

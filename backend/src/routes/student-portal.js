@@ -2,6 +2,10 @@ const router = require('express').Router();
 const jwt = require('jsonwebtoken');
 const { StudentAccount, Student, Class, History, Student: S, Group, ShopItem } = require('../models');
 const { studentAuth } = require('../middleware/auth');
+const { normalizeInviteCode } = require('../utils/inviteCode');
+
+const INVITE_CODE_REGEX = /^[A-Z0-9]{6,20}$/;
+const PHONE_REGEX = /^1\d{10}$/;
 
 const generateStudentToken = (account) => {
   return jwt.sign(
@@ -10,6 +14,99 @@ const generateStudentToken = (account) => {
     { expiresIn: '30d' }
   );
 };
+
+// 邀请码校验（进入注册）
+router.post('/invite/check', async (req, res) => {
+  try {
+    const inviteCode = normalizeInviteCode(req.body.invite_code);
+    if (!inviteCode || !INVITE_CODE_REGEX.test(inviteCode)) {
+      return res.status(400).json({ error: '邀请码格式不正确' });
+    }
+
+    const account = await StudentAccount.findOne({ where: { invite_code: inviteCode } });
+    if (!account) return res.status(404).json({ error: '邀请码不存在' });
+    if (account.phone) return res.status(409).json({ error: '邀请码已被注册' });
+
+    const student = await Student.findByPk(account.student_id, { attributes: ['id', 'name'] });
+    const cls = await Class.findByPk(account.class_id, { attributes: ['id', 'name'] });
+    res.json({ student, class: cls });
+  } catch (err) {
+    res.status(500).json({ error: '校验失败' });
+  }
+});
+
+// 学生注册（邀请码 + 账号信息）
+router.post('/register', async (req, res) => {
+  try {
+    const inviteCode = normalizeInviteCode(req.body.invite_code);
+    const username = req.body.username;
+    const password = req.body.password;
+    const confirmPassword = req.body.confirmPassword ?? req.body.confirm_password;
+    const phone = req.body.phone;
+    const verifyCode = req.body.verify_code ?? req.body.code;
+
+    if (!inviteCode || !INVITE_CODE_REGEX.test(inviteCode)) {
+      return res.status(400).json({ error: '邀请码格式不正确' });
+    }
+    if (!username || typeof username !== 'string') {
+      return res.status(400).json({ error: '用户名不能为空' });
+    }
+    if (username.length < 2 || username.length > 30) {
+      return res.status(400).json({ error: '用户名长度需为2-30个字符' });
+    }
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({ error: '密码不能为空' });
+    }
+    if (password.length < 4) {
+      return res.status(400).json({ error: '密码至少4个字符' });
+    }
+    if (confirmPassword !== undefined && password !== confirmPassword) {
+      return res.status(400).json({ error: '两次输入的密码不一致' });
+    }
+    if (!phone || typeof phone !== 'string' || !PHONE_REGEX.test(phone)) {
+      return res.status(400).json({ error: '手机号格式不正确' });
+    }
+    if (!verifyCode) {
+      return res.status(400).json({ error: '验证码不能为空' });
+    }
+    // TODO: 校验短信验证码（待接入短信服务）
+
+    const account = await StudentAccount.findOne({ where: { invite_code: inviteCode } });
+    if (!account) return res.status(404).json({ error: '邀请码不存在' });
+    if (account.phone) return res.status(409).json({ error: '邀请码已被注册' });
+
+    const nameConflict = await StudentAccount.findOne({ where: { username } });
+    if (nameConflict && nameConflict.id !== account.id) {
+      return res.status(409).json({ error: '该用户名已被使用' });
+    }
+
+    account.username = username;
+    account.password_hash = password;
+    account.phone = phone;
+    await account.save();
+
+    const student = await Student.findByPk(account.student_id);
+    if (!student) {
+      return res.status(401).json({ error: '学生信息不存在' });
+    }
+
+    const token = generateStudentToken(account);
+    res.json({
+      token,
+      student: {
+        id: student.id,
+        name: student.name,
+        class_id: account.class_id,
+        pet_type: student.pet_type,
+        pet_name: student.pet_name,
+        food_count: student.food_count,
+        badges: student.badges,
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: '注册失败' });
+  }
+});
 
 // 学生登录
 router.post('/login', async (req, res) => {
@@ -22,6 +119,10 @@ router.post('/login', async (req, res) => {
     const account = await StudentAccount.findOne({ where: { username } });
     if (!account || !(await account.comparePassword(password))) {
       return res.status(401).json({ error: '用户名或密码错误' });
+    }
+
+    if (!account.phone) {
+      return res.status(403).json({ error: '请先使用邀请码完成注册' });
     }
 
     const student = await Student.findByPk(account.student_id);

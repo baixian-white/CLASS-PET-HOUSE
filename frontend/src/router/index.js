@@ -8,7 +8,9 @@ const routes = [
   { path: '/admin', name: 'AdminDashboard', component: () => import('../views/AdminDashboard.vue') },
 
   // 学生端
-  { path: '/student/login', name: 'StudentLogin', component: () => import('../views/StudentLogin.vue') },
+  { path: '/student/login', redirect: '/login' },
+  { path: '/student/register', name: 'StudentRegister', component: () => import('../views/StudentRegister.vue') },
+  { path: '/student/reset-password', name: 'StudentResetPassword', component: () => import('../views/StudentResetPassword.vue') },
   {
     path: '/student',
     component: () => import('../layouts/StudentLayout.vue'),
@@ -45,7 +47,7 @@ router.beforeEach(async (to) => {
   // 学生端路由守卫
   if (to.meta.requiresStudentAuth) {
     const studentToken = localStorage.getItem('studentToken')
-    if (!studentToken) return '/student/login'
+    if (!studentToken) return '/login'
     return true
   }
 

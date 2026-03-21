@@ -24,8 +24,9 @@
         </div>
         <!-- 退出 -->
         <button @click="handleLogout"
-          class="w-8 h-8 flex items-center justify-center bg-slate-100 hover:bg-red-50 hover:text-red-500 text-slate-400 rounded-xl transition-colors shrink-0 text-sm">
-          🚪
+          class="h-8 px-3 flex items-center justify-center gap-1 bg-slate-100 hover:bg-red-50 hover:text-red-500 text-slate-400 rounded-xl transition-colors shrink-0 text-xs font-bold">
+          <span>🚪</span>
+          <span>退出</span>
         </button>
       </div>
     </div>
@@ -92,7 +93,7 @@ const petImageUrl = computed(() => {
 
 function handleLogout() {
   store.logout()
-  router.push('/student/login')
+  router.push('/login')
 }
 
 onMounted(async () => {

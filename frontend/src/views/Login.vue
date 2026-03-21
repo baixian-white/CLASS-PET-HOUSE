@@ -25,7 +25,7 @@
       <!-- 错误提示 -->
       <div v-if="error" class="bg-red-50 text-red-500 text-sm p-3 rounded-lg mb-4">{{ error }}</div>
 
-      <!-- 登录表单 -->
+      <!-- 登录表单（教师） -->
       <form class="space-y-4" autocomplete="off" @submit.prevent="handleLogin">
         <div>
           <label class="block text-sm text-gray-500 mb-1">用户名</label>
@@ -49,9 +49,15 @@
       </form>
 
       <!-- 教师端附加链接 -->
-      <div v-if="role === 'teacher'" class="mt-4 text-center text-sm text-gray-400 space-x-4">
-        <router-link to="/register" class="hover:text-accent">注册账号</router-link>
-        <router-link to="/reset-password" class="hover:text-accent">忘记密码</router-link>
+      <div class="mt-4 text-center text-sm text-gray-400 space-x-4">
+        <template v-if="role === 'teacher'">
+          <router-link to="/register" class="hover:text-accent">注册账号</router-link>
+          <router-link to="/reset-password" class="hover:text-accent">忘记密码</router-link>
+        </template>
+        <template v-else>
+          <router-link to="/student/register" class="hover:text-cyan-500">注册账号</router-link>
+          <router-link to="/student/reset-password" class="hover:text-cyan-500">忘记密码</router-link>
+        </template>
       </div>
 
     </div>

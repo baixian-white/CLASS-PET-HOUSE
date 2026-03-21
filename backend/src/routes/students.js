@@ -1,7 +1,11 @@
 const router = require('express').Router();
+const crypto = require('crypto');
 const { Student, Class, Group, History, ExchangeRecord, StudentAccount } = require('../models');
 const auth = require('../middleware/auth');
 const { requireActivated } = require('../middleware/auth');
+const { normalizeInviteCode } = require('../utils/inviteCode');
+
+const INVITE_CODE_REGEX = /^[A-Z0-9]{6,20}$/;
 
 // 获取班级学生
 router.get('/class/:classId', auth, requireActivated, async (req, res) => {
@@ -13,7 +17,7 @@ router.get('/class/:classId', auth, requireActivated, async (req, res) => {
       where: { class_id: cls.id },
       include: [
         { model: Group, as: 'Group', attributes: ['id', 'name'] },
-        { model: StudentAccount, as: 'account', attributes: ['username'], required: false }
+        { model: StudentAccount, as: 'account', attributes: ['username', 'invite_code', 'phone'], required: false }
       ],
       order: [['sort_order', 'ASC'], ['created_at', 'ASC']]
     });
@@ -160,47 +164,38 @@ router.post('/:id/account', auth, requireActivated, async (req, res) => {
     const cls = await Class.findOne({ where: { id: student.class_id, user_id: req.userId } });
     if (!cls) return res.status(403).json({ error: '无权限' });
 
-    const { username, password } = req.body;
-    if (!username || !password || typeof username !== 'string' || typeof password !== 'string') {
-      return res.status(400).json({ error: '用户名和密码不能为空' });
+    const inviteCodeInput = normalizeInviteCode(req.body.invite_code);
+    if (!inviteCodeInput) {
+      return res.status(400).json({ error: '邀请码不能为空' });
     }
-    if (username.length < 2 || username.length > 30) {
-      return res.status(400).json({ error: '用户名长度需为2-30个字符' });
+    if (!INVITE_CODE_REGEX.test(inviteCodeInput)) {
+      return res.status(400).json({ error: '邀请码格式不正确' });
     }
-    if (password.length < 4) {
-      return res.status(400).json({ error: '密码至少4个字符' });
-    }
-
-    // 检查用户名是否被其他学生占用
-    const conflict = await StudentAccount.findOne({ where: { username } });
-    if (conflict && conflict.student_id !== student.id) {
-      // 生成备选用户名建议（加数字后缀，直到找到未使用的）
-      const suggestions = [];
-      for (let i = 2; i <= 6 && suggestions.length < 4; i++) {
-        const candidate = `${username}${i}`;
-        const taken = await StudentAccount.findOne({ where: { username: candidate } });
-        if (!taken) suggestions.push(candidate);
-      }
-      return res.status(409).json({ error: '该用户名已被使用', suggestions });
+    const inviteConflict = await StudentAccount.findOne({ where: { invite_code: inviteCodeInput } });
+    if (inviteConflict && inviteConflict.student_id !== student.id) {
+      return res.status(409).json({ error: '该邀请码已被使用' });
     }
 
     const existing = await StudentAccount.findOne({ where: { student_id: student.id } });
     if (existing) {
-      // 重置：更新用户名和密码
-      existing.username = username;
-      existing.password_hash = password; // beforeUpdate hook will hash
+      if (existing.phone) {
+        return res.status(400).json({ error: '该账号已注册，无法修改邀请码' });
+      }
+      existing.invite_code = inviteCodeInput;
       await existing.save();
-      return res.json({ message: '账号已更新', username });
-    } else {
-      // 新建
-      await StudentAccount.create({
-        student_id: student.id,
-        class_id: student.class_id,
-        username,
-        password_hash: password
-      });
-      return res.json({ message: '账号已创建', username });
+      return res.json({ message: '邀请码已更新', invite_code: existing.invite_code });
     }
+
+    const placeholderUsername = `student_${inviteCodeInput.toLowerCase()}`;
+    const placeholderPassword = crypto.randomBytes(8).toString('hex');
+    await StudentAccount.create({
+      student_id: student.id,
+      class_id: student.class_id,
+      username: placeholderUsername,
+      invite_code: inviteCodeInput,
+      password_hash: placeholderPassword
+    });
+    return res.json({ message: '邀请码已创建', invite_code: inviteCodeInput });
   } catch (err) {
     res.status(500).json({ error: '操作失败' });
   }

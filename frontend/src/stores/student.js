@@ -18,9 +18,9 @@ studentApi.interceptors.response.use(
   err => {
     const status = err.response?.status
     const url = err.config?.url
-    if (status === 401 && !url?.includes('/login')) {
+    if (status === 401 && !url?.includes('/login') && !url?.includes('/register') && !url?.includes('/invite/check')) {
       localStorage.removeItem('studentToken')
-      window.location.href = '/student/login'
+      window.location.href = '/login'
     }
     return Promise.reject(err.response?.data || err)
   }
@@ -47,6 +47,16 @@ export const useStudentStore = defineStore('student', {
     }
   },
   actions: {
+    async checkInviteCode(invite_code) {
+      return studentApi.post('/invite/check', { invite_code })
+    },
+    async register(payload) {
+      const data = await studentApi.post('/register', payload)
+      this.token = data.token
+      this.me = data.student
+      localStorage.setItem('studentToken', data.token)
+      return data
+    },
     async login(username, password) {
       const data = await studentApi.post('/login', { username, password })
       this.token = data.token
