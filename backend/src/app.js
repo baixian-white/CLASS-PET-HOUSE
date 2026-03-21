@@ -8,6 +8,7 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const app = express();
 
 // 信任反向代理（解决 Docker/Nginx 下的 429 IP 被群封限流问题）
+// 这样 express-rate-limit 才能获取到用户的真实 IP，否则所有的请求可能都被认为是来自同一个反向代理 IP
 app.set('trust proxy', 1);
 
 // 中间件
@@ -28,7 +29,7 @@ app.use((req, res, next) => {
     console.log(`[IP DEBUG] Direct RemoteIP: ${req.socket?.remoteAddress}`);
     console.log("-----------------------------------------");
   }
-  next();
+  next();以
 });
 // ============================================
 
@@ -41,6 +42,7 @@ const authLimiter = rateLimit({
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/reset-password', authLimiter);
+app.use('/api/student-portal/login', authLimiter);
 
 // 静态文件（宠物图片）
 const petImagesStatic = express.static(path.join(__dirname, '../../assets/pets'));
@@ -59,6 +61,7 @@ const exportRoutes = require('./routes/export');
 const adminRoutes = require('./routes/admin');
 const { router: syncRouter } = require('./routes/sync');
 const aiRoutes = require('./routes/ai');
+const studentPortalRoutes = require('./routes/student-portal');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/classes', classRoutes);
@@ -71,6 +74,7 @@ app.use('/api/export', exportRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/sync', syncRouter);
 app.use('/api/ai', aiRoutes);
+app.use('/api/student-portal', studentPortalRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {

@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { Student, Class, Group, History, ExchangeRecord } = require('../models');
+const { Student, Class, Group, History, ExchangeRecord, StudentAccount } = require('../models');
 const auth = require('../middleware/auth');
 const { requireActivated } = require('../middleware/auth');
 
@@ -11,7 +11,10 @@ router.get('/class/:classId', auth, requireActivated, async (req, res) => {
 
     const students = await Student.findAll({
       where: { class_id: cls.id },
-      include: [{ model: Group, as: 'Group', attributes: ['id', 'name'] }],
+      include: [
+        { model: Group, as: 'Group', attributes: ['id', 'name'] },
+        { model: StudentAccount, as: 'account', attributes: ['username'], required: false }
+      ],
       order: [['sort_order', 'ASC'], ['created_at', 'ASC']]
     });
     res.json(students);
@@ -145,6 +148,80 @@ router.post('/random-pets', auth, requireActivated, async (req, res) => {
     res.json({ message: `已为${count}名学生随机分配宠物` });
   } catch (err) {
     res.status(500).json({ error: '分配失败' });
+  }
+});
+
+// 创建/重置学生账号（老师操作）
+router.post('/:id/account', auth, requireActivated, async (req, res) => {
+  try {
+    const student = await Student.findByPk(req.params.id);
+    if (!student) return res.status(404).json({ error: '学生不存在' });
+
+    const cls = await Class.findOne({ where: { id: student.class_id, user_id: req.userId } });
+    if (!cls) return res.status(403).json({ error: '无权限' });
+
+    const { username, password } = req.body;
+    if (!username || !password || typeof username !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({ error: '用户名和密码不能为空' });
+    }
+    if (username.length < 2 || username.length > 30) {
+      return res.status(400).json({ error: '用户名长度需为2-30个字符' });
+    }
+    if (password.length < 4) {
+      return res.status(400).json({ error: '密码至少4个字符' });
+    }
+
+    // 检查用户名是否被其他学生占用
+    const conflict = await StudentAccount.findOne({ where: { username } });
+    if (conflict && conflict.student_id !== student.id) {
+      // 生成备选用户名建议（加数字后缀，直到找到未使用的）
+      const suggestions = [];
+      for (let i = 2; i <= 6 && suggestions.length < 4; i++) {
+        const candidate = `${username}${i}`;
+        const taken = await StudentAccount.findOne({ where: { username: candidate } });
+        if (!taken) suggestions.push(candidate);
+      }
+      return res.status(409).json({ error: '该用户名已被使用', suggestions });
+    }
+
+    const existing = await StudentAccount.findOne({ where: { student_id: student.id } });
+    if (existing) {
+      // 重置：更新用户名和密码
+      existing.username = username;
+      existing.password_hash = password; // beforeUpdate hook will hash
+      await existing.save();
+      return res.json({ message: '账号已更新', username });
+    } else {
+      // 新建
+      await StudentAccount.create({
+        student_id: student.id,
+        class_id: student.class_id,
+        username,
+        password_hash: password
+      });
+      return res.json({ message: '账号已创建', username });
+    }
+  } catch (err) {
+    res.status(500).json({ error: '操作失败' });
+  }
+});
+
+// 删除学生账号（老师操作）
+router.delete('/:id/account', auth, requireActivated, async (req, res) => {
+  try {
+    const student = await Student.findByPk(req.params.id);
+    if (!student) return res.status(404).json({ error: '学生不存在' });
+
+    const cls = await Class.findOne({ where: { id: student.class_id, user_id: req.userId } });
+    if (!cls) return res.status(403).json({ error: '无权限' });
+
+    const account = await StudentAccount.findOne({ where: { student_id: student.id } });
+    if (!account) return res.status(404).json({ error: '该学生暂无账号' });
+
+    await account.destroy();
+    res.json({ message: '账号已删除' });
+  } catch (err) {
+    res.status(500).json({ error: '删除失败' });
   }
 });
 

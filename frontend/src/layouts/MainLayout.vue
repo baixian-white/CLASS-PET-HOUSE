@@ -2,13 +2,13 @@
   <div class="min-h-screen text-gray-800 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-4 overflow-x-hidden" :style="{ backgroundColor: 'var(--theme-bg, #fef5b5)' }">
     <!-- 顶部主控面板 -->
     <div ref="topPanelRef" class="fixed top-0 left-0 right-0 z-50 pt-[calc(0.5rem+env(safe-area-inset-top))] pb-2 px-3 sm:px-4 md:px-6 lg:px-8 pointer-events-none flex justify-center">
-      <div class="w-full max-w-[1600px] 2xl:max-w-[1800px] bg-white/95 backdrop-blur-3xl rounded-[1.5rem] sm:rounded-[2rem] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.1)] p-3 sm:p-4 flex flex-col md:flex-row md:items-center gap-2 md:gap-4 pointer-events-auto border border-white relative overflow-hidden">
+      <div class="w-full max-w-[1600px] 2xl:max-w-[1800px] bg-white/95 backdrop-blur-3xl rounded-[1.5rem] sm:rounded-[2rem] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.1)] p-3 sm:p-4 flex flex-col md:flex-row md:items-center gap-2 md:gap-4 pointer-events-auto border border-white relative z-50">
         <!-- 装饰性元素 -->
-        <div class="absolute -left-10 -top-10 w-24 h-24 bg-cyan-400 rounded-full blur-[40px] opacity-20 pointer-events-none"></div>
+        <div class="absolute -left-10 -top-10 w-24 h-24 bg-cyan-400 rounded-full blur-[40px] opacity-20 pointer-events-none overflow-hidden" style="border-radius: inherit;"></div>
 
         <!-- 第一行: 左侧班级 & 右侧操作 -->
         <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 gap-y-2 z-10 min-w-0">
-          <button @click="showClassModal = true" class="group max-w-full flex items-center gap-2 text-slate-700 font-bold bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-full transition-colors border border-slate-100">
+          <button @click="showClassModal = true" class="group max-w-full flex items-center gap-2 text-slate-700 font-bold bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-full transition-colors border border-slate-100 relative z-20">
             <img src="/logo.png" alt="logo" class="w-6 h-6 sm:w-7 sm:h-7 drop-shadow-sm" />
             <span class="text-sm font-bold tracking-wide truncate max-w-[9rem] sm:max-w-[18rem] md:max-w-[24rem]">{{ classStore.currentClass?.name || '默认班级' }}</span>
             <span class="text-[10px] text-slate-400">▼</span>
@@ -28,14 +28,29 @@
               <span class="text-sm sm:text-base" :class="groupMode ? 'text-white' : 'text-purple-400'">📋</span>
               <span class="hidden min-[400px]:inline">分组</span>
             </button>
-            <div class="relative shrink-0">
-              <select v-model="sortMode" class="appearance-none bg-sky-50 text-sky-600 border border-sky-100 rounded-full pl-2.5 sm:pl-3 pr-6 py-1.5 text-xs sm:text-sm font-bold outline-none cursor-pointer hover:bg-sky-100 transition-colors shadow-sm h-full flex items-center w-[6.6rem] sm:w-auto">
-                <option value="manual">⇅ 排序</option>
-                <option value="name">姓名字典</option>
-                <option value="food">积分食物</option>
-                <option value="progress">等级进度</option>
-              </select>
-              <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[8px] text-sky-400">▼</span>
+            <!-- 自定义排序下拉 -->
+            <div class="relative shrink-0" ref="sortDropdownRef">
+              <button @click="showSortMenu = !showSortMenu"
+                class="flex items-center justify-between gap-1 px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-colors border bg-sky-50 text-sky-600 border-sky-100 hover:bg-sky-100 shadow-sm whitespace-nowrap min-w-[6.5rem] sm:min-w-[7.5rem]">
+                <div class="flex items-center gap-1.5">
+                  <span>⇅</span>
+                  <span>{{ sortOptions.find(o => o.value === sortMode)?.label || '排序' }}</span>
+                </div>
+                <span class="text-[8px] text-sky-400 ml-1">▼</span>
+              </button>
+              <!-- 下拉面板 -->
+              <Transition enter-active-class="transition-all duration-150 ease-out" enter-from-class="opacity-0 scale-95 -translate-y-1" enter-to-class="opacity-100 scale-100 translate-y-0" leave-active-class="transition-all duration-100 ease-in" leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95 -translate-y-1">
+                <div v-if="showSortMenu"
+                  class="absolute right-0 top-full mt-2 bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] ring-1 ring-slate-100 overflow-hidden z-[100] min-w-[8rem] origin-top-right">
+                  <button v-for="opt in sortOptions" :key="opt.value"
+                    @click="sortMode = opt.value; showSortMenu = false"
+                    class="w-full flex items-center justify-between gap-3 px-4 py-3.5 sm:py-3 text-sm font-bold text-left hover:bg-slate-50 transition-colors bg-white border-b border-slate-50 last:border-b-0"
+                    :class="sortMode === opt.value ? 'text-sky-500' : 'text-slate-600'">
+                    <span>{{ opt.label }}</span>
+                    <span v-if="sortMode === opt.value" class="text-sky-400 text-xs text-shadow-sm">✓</span>
+                  </button>
+                </div>
+              </Transition>
             </div>
           </div>
         </div>
@@ -198,6 +213,14 @@ const showBatchScoreModal = ref(false)
 const showMenu = ref(false)
 const showRandomPick = ref(false)
 const showTimer = ref(false)
+const showSortMenu = ref(false)
+const sortDropdownRef = ref(null)
+const sortOptions = [
+  { value: 'manual', label: '默认排序' },
+  { value: 'name', label: '姓名字典' },
+  { value: 'food', label: '积分食物' },
+  { value: 'progress', label: '等级进度' },
+]
 const topPanelRef = ref(null)
 const topPanelHeight = ref(136)
 let topPanelObserver = null
@@ -298,6 +321,9 @@ onMounted(async () => {
     topPanelObserver.observe(topPanelRef.value)
   }
 
+  // 点击外部关闭排序下拉框
+  document.addEventListener('click', handleClickOutside)
+
   try {
     await classStore.fetchClasses()
     if (classStore.currentClass) {
@@ -321,8 +347,15 @@ watch(
   }
 )
 
+function handleClickOutside(event) {
+  if (showSortMenu.value && sortDropdownRef.value && !sortDropdownRef.value.contains(event.target)) {
+    showSortMenu.value = false
+  }
+}
+
 onBeforeUnmount(() => {
   window.removeEventListener('resize', updateTopPanelHeight)
+  document.removeEventListener('click', handleClickOutside)
   topPanelObserver?.disconnect()
   topPanelObserver = null
 })

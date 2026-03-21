@@ -8,6 +8,7 @@ const History = require('./History');
 const ShopItem = require('./ShopItem');
 const ExchangeRecord = require('./ExchangeRecord');
 const License = require('./License');
+const StudentAccount = require('./StudentAccount');
 
 // User -> Classes
 User.hasMany(Class, { foreignKey: 'user_id', as: 'classes' });
@@ -49,7 +50,11 @@ ExchangeRecord.belongsTo(Class, { foreignKey: 'class_id' });
 Student.hasMany(ExchangeRecord, { foreignKey: 'student_id', as: 'exchangeRecords' });
 ExchangeRecord.belongsTo(Student, { foreignKey: 'student_id' });
 
+// Student -\u003e StudentAccount
+Student.hasOne(StudentAccount, { foreignKey: 'student_id', as: 'account' });
+StudentAccount.belongsTo(Student, { foreignKey: 'student_id' });
+
 module.exports = {
   sequelize, User, Class, Student, Group,
-  ScoreRule, History, ShopItem, ExchangeRecord, License
+  ScoreRule, History, ShopItem, ExchangeRecord, License, StudentAccount
 };

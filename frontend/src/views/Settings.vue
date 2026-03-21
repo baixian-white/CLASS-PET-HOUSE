@@ -28,6 +28,69 @@
       </div>
     </div>
 
+    <!-- 学生账号管理 -->
+    <div class="bg-white rounded-2xl p-5 shadow-sm">
+      <h3 class="font-bold text-gray-700 mb-1">🔐 学生端账号管理</h3>
+      <p class="text-xs text-gray-400 mb-3">
+        建议用学生姓名拼音作为账号。遇到重名时，点击系统提供的备选账号即可快速解决。
+      </p>
+
+      <div class="space-y-2 max-h-72 overflow-y-auto">
+        <div v-for="s in classStore.students" :key="s.id"
+          class="rounded-xl border border-gray-100 overflow-hidden">
+          <!-- 学生行 -->
+          <div class="flex items-center justify-between px-3 py-2 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+            @click="toggleAccountPanel(s.id)">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-bold text-gray-700">{{ s.name }}</span>
+              <span v-if="accountMap[s.id]" class="text-xs bg-green-100 text-green-600 px-1.5 py-0.5 rounded-full font-bold">
+                @{{ accountMap[s.id] }}
+              </span>
+              <span v-else class="text-xs bg-gray-200 text-gray-400 px-1.5 py-0.5 rounded-full font-medium">未设置</span>
+            </div>
+            <span class="text-xs text-gray-400">{{ openAccountPanel === s.id ? '▲' : '▼' }}</span>
+          </div>
+
+          <!-- 展开的账号设置区 -->
+          <div v-if="openAccountPanel === s.id" class="px-3 py-3 border-t border-gray-100 bg-white space-y-2.5">
+            <!-- 用户名行 -->
+            <div class="flex gap-2 items-center">
+              <input v-model="accountForm.username" placeholder="用户名（如 zhangyiming）" type="text"
+                class="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-accent"
+                @input="accountSuggestions = []" />
+            </div>
+
+            <!-- 冲突建议区 -->
+            <div v-if="accountSuggestions.length" class="flex flex-wrap gap-1.5 items-center">
+              <span class="text-xs text-orange-400 font-bold">⚠️ 已被占用，换一个：</span>
+              <button v-for="s in accountSuggestions" :key="s"
+                @click="accountForm.username = s; accountSuggestions = []"
+                class="px-2.5 py-1 bg-orange-50 text-orange-600 border border-orange-200 rounded-full text-xs font-bold hover:bg-orange-100 transition">
+                {{ s }}
+              </button>
+            </div>
+
+            <!-- 密码行 -->
+            <input v-model="accountForm.password" placeholder="密码（至少4位，可用学号等）" type="text"
+              class="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-accent" />
+
+            <!-- 操作按钮 -->
+            <div class="flex gap-2">
+              <button @click="saveStudentAccount(s)" :disabled="accountLoading"
+                class="flex-1 py-1.5 bg-accent text-white rounded-lg text-sm font-bold hover:opacity-90 active:scale-95 transition disabled:opacity-50">
+                {{ accountMap[s.id] ? '更新账号' : '创建账号' }}
+              </button>
+              <button v-if="accountMap[s.id]" @click="deleteStudentAccount(s)" :disabled="accountLoading"
+                class="px-3 py-1.5 bg-red-50 text-red-500 rounded-lg text-sm font-bold hover:bg-red-100 active:scale-95 transition disabled:opacity-50">
+                删除
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
     <!-- 积分规则管理 -->
     <div class="bg-white rounded-2xl p-5 shadow-sm">
       <h3 class="font-bold text-gray-700 mb-3">📋 加分项目管理</h3>
@@ -178,6 +241,7 @@ import AiReportModal from '../components/AiReportModal.vue'
 import { useTheme } from '../composables/useTheme'
 import { PETS } from '../utils/pets'
 import Dialog from '../utils/dialog'
+import { pinyin } from 'pinyin-pro'
 
 const router = useRouter()
 const classStore = useClassStore()
@@ -191,6 +255,85 @@ const currentTheme = ref('pink')
 const selectedTemplateKeys = ref([])
 const customImportText = ref('')
 const customImportTextarea = ref(null)
+
+// 学生账号管理
+const accountMap = ref({}) // student_id -> username
+const openAccountPanel = ref(null)
+const accountForm = ref({ username: '', password: '' })
+const accountLoading = ref(false)
+const accountSuggestions = ref([]) // 冲突时的备选用户名
+
+async function loadAccountMap() {
+  const map = {}
+  for (const s of classStore.students) {
+    if (s.account) map[s.id] = s.account.username
+  }
+  accountMap.value = map
+}
+
+function toggleAccountPanel(id) {
+  if (openAccountPanel.value === id) {
+    openAccountPanel.value = null
+    accountForm.value = { username: '', password: '' }
+    accountSuggestions.value = []
+  } else {
+    openAccountPanel.value = id
+    const existingUsername = accountMap.value[id] || ''
+    // 如果已有账号则显示原用户名；否则自动生成拼音
+    let username = existingUsername
+    if (!username) {
+      const s = classStore.students.find(s => s.id === id)
+      if (s) {
+        const py = pinyin(s.name, { toneType: 'none', type: 'array' })
+        username = py.join('').toLowerCase().replace(/[^a-z0-9]/g, '')
+      }
+    }
+    accountForm.value = { username, password: '' }
+    accountSuggestions.value = []
+  }
+}
+
+async function saveStudentAccount(s) {
+  if (!accountForm.value.username || !accountForm.value.password) {
+    Dialog.alert('用户名和密码不能为空')
+    return
+  }
+  accountLoading.value = true
+  accountSuggestions.value = []
+  try {
+    await api.post(`/students/${s.id}/account`, {
+      username: accountForm.value.username,
+      password: accountForm.value.password
+    })
+    accountMap.value = { ...accountMap.value, [s.id]: accountForm.value.username }
+    accountForm.value = { username: '', password: '' }
+    openAccountPanel.value = null
+    Dialog.alert('账号设置成功')
+  } catch (err) {
+    // api.js 的 interceptor reject 的就是 response.data，所以 err = { error, suggestions }
+    if (err && err.suggestions) {
+      accountSuggestions.value = err.suggestions
+      // 不弹窗，直接在面板里展示建议供点击
+    } else {
+      Dialog.alert(err?.error || '设置失败')
+    }
+  }
+  finally { accountLoading.value = false }
+}
+
+async function deleteStudentAccount(s) {
+  if (!(await Dialog.confirm(`确定删除「${s.name}」的学生账号？`))) return
+  accountLoading.value = true
+  try {
+    await api.delete(`/students/${s.id}/account`)
+    const map = { ...accountMap.value }
+    delete map[s.id]
+    accountMap.value = map
+    openAccountPanel.value = null
+    accountSuggestions.value = []
+  } catch (err) { Dialog.alert(err.error || '删除失败') }
+  finally { accountLoading.value = false }
+}
 
 const iconLibrary = [
   '⭐', '🌟', '✨', '🏅', '📖', '📝', '✍️', '📚', '🎯', '✅',
@@ -253,6 +396,7 @@ async function loadClassData() {
     classStore.fetchScoreRules()
   ])
   rules.value = [...classStore.scoreRules]
+  await loadAccountMap()
 }
 
 onMounted(async () => {

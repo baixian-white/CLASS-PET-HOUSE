@@ -6,6 +6,22 @@ const routes = [
   { path: '/register', name: 'Register', component: () => import('../views/Register.vue') },
   { path: '/reset-password', name: 'ResetPassword', component: () => import('../views/ResetPassword.vue') },
   { path: '/admin', name: 'AdminDashboard', component: () => import('../views/AdminDashboard.vue') },
+
+  // 学生端
+  { path: '/student/login', name: 'StudentLogin', component: () => import('../views/StudentLogin.vue') },
+  {
+    path: '/student',
+    component: () => import('../layouts/StudentLayout.vue'),
+    meta: { requiresStudentAuth: true },
+    children: [
+      { path: '', name: 'StudentHome', component: () => import('../views/student/StudentHome.vue') },
+      { path: 'leaderboard', name: 'StudentLeaderboard', component: () => import('../views/student/StudentLeaderboard.vue') },
+      { path: 'history', name: 'StudentHistory', component: () => import('../views/student/StudentHistory.vue') },
+      { path: 'shop', name: 'StudentShop', component: () => import('../views/student/StudentShop.vue') },
+    ]
+  },
+
+  // 老师端
   {
     path: '/',
     component: () => import('../layouts/MainLayout.vue'),
@@ -26,6 +42,14 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to) => {
+  // 学生端路由守卫
+  if (to.meta.requiresStudentAuth) {
+    const studentToken = localStorage.getItem('studentToken')
+    if (!studentToken) return '/student/login'
+    return true
+  }
+
+  // 老师端路由守卫
   const token = localStorage.getItem('token')
   if (to.meta.requiresAuth && !token) return '/login'
 
