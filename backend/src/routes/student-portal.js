@@ -1,11 +1,12 @@
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
-const { StudentAccount, Student, Class, History, Student: S, Group, ShopItem } = require('../models');
+const { StudentAccount, Student, Class, History, Group, ShopItem } = require('../models');
 const { studentAuth } = require('../middleware/auth');
+const { ApiError } = require('../lib/api-error');
+const { phoneVerificationService } = require('../services/sms');
 const { normalizeInviteCode } = require('../utils/inviteCode');
 
 const INVITE_CODE_REGEX = /^[A-Z0-9]{6,20}$/;
-const PHONE_REGEX = /^1\d{10}$/;
 
 const generateStudentToken = (account) => {
   return jwt.sign(
@@ -14,6 +15,40 @@ const generateStudentToken = (account) => {
     { expiresIn: '30d' }
   );
 };
+
+function respondServiceError(res, err, fallbackMessage) {
+  if (err instanceof ApiError) {
+    return res.status(err.status).json({
+      error: err.message,
+      ...err.extraBody
+    });
+  }
+
+  console.error('[student-portal]', err);
+  return res.status(500).json({ error: fallbackMessage });
+}
+
+router.get('/sms/status', async (req, res) => {
+  try {
+    res.json(phoneVerificationService.publicStatus());
+  } catch (err) {
+    respondServiceError(res, err, '获取短信状态失败');
+  }
+});
+
+router.post('/send-register-code', async (req, res) => {
+  try {
+    const phone = String(req.body.phone || '').trim();
+    if (!phone) {
+      return res.status(400).json({ error: '手机号不能为空' });
+    }
+
+    const result = await phoneVerificationService.sendRegisterCode(phone);
+    res.json(result);
+  } catch (err) {
+    respondServiceError(res, err, '验证码发送失败');
+  }
+});
 
 // 邀请码校验（进入注册）
 router.post('/invite/check', async (req, res) => {
@@ -63,13 +98,15 @@ router.post('/register', async (req, res) => {
     if (confirmPassword !== undefined && password !== confirmPassword) {
       return res.status(400).json({ error: '两次输入的密码不一致' });
     }
-    if (!phone || typeof phone !== 'string' || !PHONE_REGEX.test(phone)) {
+    if (!phone || typeof phone !== 'string') {
       return res.status(400).json({ error: '手机号格式不正确' });
     }
     if (!verifyCode) {
       return res.status(400).json({ error: '验证码不能为空' });
     }
-    // TODO: 校验短信验证码（待接入短信服务）
+
+    const normalizedPhone = phoneVerificationService.normalizePhone(phone);
+    await phoneVerificationService.verifyRegisterCode(normalizedPhone, verifyCode);
 
     const account = await StudentAccount.findOne({ where: { invite_code: inviteCode } });
     if (!account) return res.status(404).json({ error: '邀请码不存在' });
@@ -82,8 +119,9 @@ router.post('/register', async (req, res) => {
 
     account.username = username;
     account.password_hash = password;
-    account.phone = phone;
+    account.phone = normalizedPhone;
     await account.save();
+    await phoneVerificationService.consumeRegisterCode(normalizedPhone);
 
     const student = await Student.findByPk(account.student_id);
     if (!student) {
@@ -104,7 +142,7 @@ router.post('/register', async (req, res) => {
       }
     });
   } catch (err) {
-    res.status(500).json({ error: '注册失败' });
+    respondServiceError(res, err, '注册失败');
   }
 });
 

@@ -5,6 +5,7 @@
       <p class="text-center text-gray-400 mb-6">注册新账号</p>
 
       <div v-if="error" class="bg-red-50 text-red-500 text-sm p-3 rounded-lg mb-4">{{ error }}</div>
+      <div v-if="sendMessage" class="bg-emerald-50 text-emerald-600 text-sm p-3 rounded-lg mb-4">{{ sendMessage }}</div>
 
       <div class="space-y-4" autocomplete="off">
         <div>
@@ -47,12 +48,12 @@
               data-1p-ignore="true" data-lpignore="true" data-bwignore="true"
               name="student_register_code"
               class="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:border-accent ring-accent outline-none transition" />
-            <button type="button" @click="handleSendCode"
-              class="px-3 py-3 rounded-xl border border-gray-200 bg-white text-xs text-gray-500 hover:bg-gray-50">
-              获取验证码
+            <button type="button" @click="handleSendCode" :disabled="sendingCode || resendCountdown > 0"
+              class="px-3 py-3 rounded-xl border border-gray-200 bg-white text-xs text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+              {{ sendButtonText }}
             </button>
           </div>
-          <p class="text-xs text-gray-400 mt-1">验证码获取流程待接入（TODO）</p>
+          <p class="text-xs text-gray-400 mt-1">请输入收到的 6 位短信验证码。本地开发模式下会输出到后端日志。</p>
         </div>
         <div>
           <label class="block text-sm text-gray-500 mb-1">邀请码</label>
@@ -76,7 +77,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStudentStore } from '../stores/student'
 
@@ -89,11 +90,58 @@ const phone = ref('')
 const verifyCode = ref('')
 const inviteCode = ref('')
 const error = ref('')
+const sendMessage = ref('')
 const loading = ref(false)
+const sendingCode = ref(false)
+const resendCountdown = ref(0)
 
-function handleSendCode() {
-  // TODO: 接入短信验证码发送
-  error.value = '验证码发送功能待接入'
+let resendTimer = null
+
+const sendButtonText = computed(() => {
+  if (sendingCode.value) return '发送中...'
+  if (resendCountdown.value > 0) return `${resendCountdown.value}s`
+  return '获取验证码'
+})
+
+function isValidPhone(value) {
+  return /^1\d{10}$/.test(String(value || '').trim())
+}
+
+function startCountdown(seconds) {
+  if (resendTimer) clearInterval(resendTimer)
+  resendCountdown.value = Math.max(0, Number(seconds) || 60)
+  resendTimer = setInterval(() => {
+    if (resendCountdown.value <= 1) {
+      clearInterval(resendTimer)
+      resendTimer = null
+      resendCountdown.value = 0
+      return
+    }
+    resendCountdown.value -= 1
+  }, 1000)
+}
+
+async function handleSendCode() {
+  const normalizedPhone = phone.value.trim()
+  if (!isValidPhone(normalizedPhone)) {
+    error.value = '请输入正确的11位手机号'
+    return
+  }
+
+  sendingCode.value = true
+  error.value = ''
+  sendMessage.value = ''
+  try {
+    const data = await studentStore.sendRegisterCode(normalizedPhone)
+    startCountdown(data?.resend_seconds || 60)
+    sendMessage.value = data?.real_send_enabled
+      ? '验证码已发送，请注意查收短信'
+      : '验证码已发送。当前是本地调试模式，请查看后端日志中的验证码'
+  } catch (err) {
+    error.value = err?.error || '验证码发送失败'
+  } finally {
+    sendingCode.value = false
+  }
 }
 
 async function handleRegister() {
@@ -123,4 +171,8 @@ async function handleRegister() {
     loading.value = false
   }
 }
+
+onBeforeUnmount(() => {
+  if (resendTimer) clearInterval(resendTimer)
+})
 </script>

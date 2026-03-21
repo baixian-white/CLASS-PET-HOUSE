@@ -42,7 +42,9 @@ const authLimiter = rateLimit({
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/reset-password', authLimiter);
+app.use('/api/auth/send-register-code', authLimiter);
 app.use('/api/student-portal/login', authLimiter);
+app.use('/api/student-portal/send-register-code', authLimiter);
 
 // 静态文件（宠物图片）
 const petImagesStatic = express.static(path.join(__dirname, '../../assets/pets'));

@@ -3,12 +3,28 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { User, Class, ScoreRule, License, sequelize } = require('../models');
 const auth = require('../middleware/auth');
+const { ApiError } = require('../lib/api-error');
+const { phoneVerificationService } = require('../services/sms');
+
+const TEACHER_REGISTER_SCENE = 'teacher_register';
 
 const generateToken = (user) => {
   return jwt.sign({ id: user.id }, process.env.JWT_SECRET || 'class-pet-house-secret', {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d'
   });
 };
+
+function respondServiceError(res, err, fallbackMessage) {
+  if (err instanceof ApiError) {
+    return res.status(err.status).json({
+      error: err.message,
+      ...err.extraBody
+    });
+  }
+
+  console.error('[auth]', err);
+  return res.status(500).json({ error: fallbackMessage });
+}
 
 // 默认积分规则
 const DEFAULT_RULES = [
@@ -28,11 +44,41 @@ const DEFAULT_RULES = [
   { name: '损坏公物', icon: '💔', value: -3 }
 ];
 
+router.get('/sms/status', async (req, res) => {
+  try {
+    res.json(phoneVerificationService.publicStatus());
+  } catch (err) {
+    respondServiceError(res, err, '获取短信状态失败');
+  }
+});
+
+router.post('/send-register-code', async (req, res) => {
+  try {
+    const phone = String(req.body.phone || '').trim();
+    if (!phone) {
+      return res.status(400).json({ error: '手机号不能为空' });
+    }
+
+    const result = await phoneVerificationService.sendCode(TEACHER_REGISTER_SCENE, phone);
+    res.json(result);
+  } catch (err) {
+    respondServiceError(res, err, '验证码发送失败');
+  }
+});
+
 // 注册与激活合并
 router.post('/register', async (req, res) => {
   let t;
   try {
-    const { username, password, activationCode } = req.body;
+    const {
+      username,
+      password,
+      activationCode,
+      phone,
+      verifyCode,
+      code,
+      confirmPassword
+    } = req.body;
 
     // 基础校验
     if (!username || !password || !activationCode ||
@@ -45,6 +91,14 @@ router.post('/register', async (req, res) => {
     if (password.length < 6) {
       return res.status(400).json({ error: '密码至少6个字符' });
     }
+    if (confirmPassword !== undefined && password !== confirmPassword) {
+      return res.status(400).json({ error: '两次密码不一致' });
+    }
+    if (!phone || typeof phone !== 'string') {
+      return res.status(400).json({ error: '手机号格式不正确' });
+    }
+    const normalizedPhone = phoneVerificationService.normalizePhone(phone);
+    await phoneVerificationService.verifyCode(TEACHER_REGISTER_SCENE, normalizedPhone, verifyCode ?? code);
 
     t = await sequelize.transaction();
 
@@ -80,6 +134,7 @@ router.post('/register', async (req, res) => {
     }
 
     await t.commit();
+    await phoneVerificationService.consumeCode(TEACHER_REGISTER_SCENE, normalizedPhone);
     const token = generateToken(user);
 
     res.json({
@@ -89,7 +144,7 @@ router.post('/register', async (req, res) => {
     });
   } catch (err) {
     if (t) await t.rollback();
-    res.status(500).json({ error: '注册激活失败' });
+    respondServiceError(res, err, '注册激活失败');
   }
 });
 

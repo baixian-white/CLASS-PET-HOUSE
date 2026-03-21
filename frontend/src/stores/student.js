@@ -50,6 +50,9 @@ export const useStudentStore = defineStore('student', {
     async checkInviteCode(invite_code) {
       return studentApi.post('/invite/check', { invite_code })
     },
+    async sendRegisterCode(phone) {
+      return studentApi.post('/send-register-code', { phone })
+    },
     async register(payload) {
       const data = await studentApi.post('/register', payload)
       this.token = data.token
