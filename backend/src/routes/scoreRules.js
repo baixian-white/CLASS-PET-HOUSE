@@ -17,6 +17,9 @@ router.get('/class/:classId', auth, requireActivated, async (req, res) => {
     });
     res.json(rules);
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'score_rules.list_error', { error: err, classId: req.params.classId });
+    }
     res.status(500).json({ error: '获取失败' });
   }
 });
@@ -36,8 +39,14 @@ router.post('/', auth, requireActivated, async (req, res) => {
     const rule = await ScoreRule.create({
       class_id, name, icon: icon || '⭐', value, sort_order: count
     });
+    if (req.log) {
+      req.log('info', 'score_rules.create', { classId: class_id, ruleId: rule.id });
+    }
     res.json(rule);
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'score_rules.create_error', { error: err, classId: req.body?.class_id });
+    }
     res.status(500).json({ error: '添加失败' });
   }
 });
@@ -61,8 +70,14 @@ router.put('/:id', auth, requireActivated, async (req, res) => {
       ...(value !== undefined && { value }),
       ...(sort_order !== undefined && { sort_order })
     });
+    if (req.log) {
+      req.log('info', 'score_rules.update', { ruleId: rule.id, classId: rule.class_id });
+    }
     res.json(rule);
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'score_rules.update_error', { error: err, ruleId: req.params.id });
+    }
     res.status(500).json({ error: '更新失败' });
   }
 });
@@ -77,8 +92,14 @@ router.delete('/:id', auth, requireActivated, async (req, res) => {
     if (!cls) return res.status(403).json({ error: '无权限' });
 
     await rule.destroy();
+    if (req.log) {
+      req.log('info', 'score_rules.delete', { ruleId: rule.id, classId: rule.class_id });
+    }
     res.json({ message: '删除成功' });
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'score_rules.delete_error', { error: err, ruleId: req.params.id });
+    }
     res.status(500).json({ error: '删除失败' });
   }
 });

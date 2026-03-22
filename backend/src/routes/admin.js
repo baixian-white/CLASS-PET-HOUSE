@@ -1,12 +1,18 @@
 const router = require('express').Router();
 const { License, User } = require('../models');
 const crypto = require('crypto');
+const logger = require('../utils/logger');
 
 // 管理员验证（使用 Authorization header）
 const adminAuth = (req, res, next) => {
   const adminUser = (process.env.ADMIN_USERNAME || '').trim();
   const adminPass = (process.env.ADMIN_PASSWORD || '').trim();
   if (!adminUser || !adminPass) {
+    if (req.log) {
+      req.log('warn', 'admin.auth.misconfigured');
+    } else {
+      logger.warn('admin.auth.misconfigured');
+    }
     return res.status(503).json({ error: '管理后台未配置' });
   }
 
@@ -25,6 +31,11 @@ const adminAuth = (req, res, next) => {
   const headerPass = (req.headers['x-admin-password'] || req.headers.password || '').toString().trim();
   if (headerUser === adminUser && headerPass === adminPass) return next();
 
+  if (req.log) {
+    req.log('warn', 'admin.auth.failed', { ip: req.ip });
+  } else {
+    logger.warn('admin.auth.failed', { ip: req.ip });
+  }
   res.status(401).json({ error: '管理员认证失败' });
 };
 
@@ -38,8 +49,16 @@ router.post('/licenses/generate', adminAuth, async (req, res) => {
       await License.create({ code });
       codes.push(code);
     }
+    if (req.log) {
+      req.log('info', 'admin.licenses.generated', { count: codes.length });
+    }
     res.json({ message: `生成${codes.length}个卡密`, codes });
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'admin.licenses.generate_error', { error: err });
+    } else {
+      logger.error('admin.licenses.generate_error', { error: err });
+    }
     res.status(500).json({ error: '生成失败' });
   }
 });
@@ -61,6 +80,11 @@ router.get('/licenses', adminAuth, async (req, res) => {
 
     res.json(result);
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'admin.licenses.error', { error: err });
+    } else {
+      logger.error('admin.licenses.error', { error: err });
+    }
     res.status(500).json({ error: '获取失败' });
   }
 });
@@ -74,6 +98,11 @@ router.get('/users', adminAuth, async (req, res) => {
     });
     res.json(users);
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'admin.users.error', { error: err });
+    } else {
+      logger.error('admin.users.error', { error: err });
+    }
     res.status(500).json({ error: '获取失败' });
   }
 });
@@ -87,12 +116,22 @@ router.get('/stats', adminAuth, async (req, res) => {
     const usedLicenses = await License.count({ where: { is_used: true } });
     res.json({ totalUsers, activatedUsers, totalLicenses, usedLicenses });
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'admin.stats.error', { error: err });
+    } else {
+      logger.error('admin.stats.error', { error: err });
+    }
     res.status(500).json({ error: '获取失败' });
   }
 });
 
 // 仅仅为了排查线上环境变量加载问题，临时提供的不鉴权接口
 router.get('/debug-env', (req, res) => {
+  if (req.log) {
+    req.log('warn', 'admin.debug_env.accessed', { ip: req.ip });
+  } else {
+    logger.warn('admin.debug_env.accessed', { ip: req.ip });
+  }
   res.json({
     user: (process.env.ADMIN_USERNAME || 'undefined').trim(),
     pass: (process.env.ADMIN_PASSWORD || 'undefined').trim(),

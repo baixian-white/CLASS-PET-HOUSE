@@ -16,6 +16,9 @@ router.get('/class/:classId', auth, requireActivated, async (req, res) => {
     });
     res.json(students);
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'students.list_error', { error: err, classId: req.params.classId });
+    }
     res.status(500).json({ error: '获取失败' });
   }
 });
@@ -42,6 +45,9 @@ router.post('/', auth, requireActivated, async (req, res) => {
         .map((n, i) => ({ class_id, name: n.trim(), sort_order: total + i }));
 
       const created = await Student.bulkCreate(newStudents);
+      if (req.log) {
+        req.log('info', 'students.bulk_create', { classId: class_id, created: created.length });
+      }
       return res.json({ created: created.length, students: created });
     }
 
@@ -58,8 +64,14 @@ router.post('/', auth, requireActivated, async (req, res) => {
 
     const count = await Student.count({ where: { class_id } });
     const student = await Student.create({ class_id, name: name.trim(), sort_order: count });
+    if (req.log) {
+      req.log('info', 'students.create', { classId: class_id, studentId: student.id });
+    }
     res.json(student);
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'students.create_error', { error: err, classId: req.body?.class_id });
+    }
     res.status(500).json({ error: '添加失败' });
   }
 });
@@ -84,8 +96,14 @@ router.put('/:id', auth, requireActivated, async (req, res) => {
     allowed.forEach(k => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
 
     await student.update(updates);
+    if (req.log) {
+      req.log('info', 'students.update', { studentId: student.id, classId: student.class_id });
+    }
     res.json(student);
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'students.update_error', { error: err, studentId: req.params.id });
+    }
     res.status(500).json({ error: '更新失败' });
   }
 });
@@ -102,8 +120,14 @@ router.delete('/:id', auth, requireActivated, async (req, res) => {
     await History.destroy({ where: { student_id: student.id } });
     await ExchangeRecord.destroy({ where: { student_id: student.id } });
     await student.destroy();
+    if (req.log) {
+      req.log('info', 'students.delete', { studentId: student.id, classId: student.class_id });
+    }
     res.json({ message: '删除成功' });
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'students.delete_error', { error: err, studentId: req.params.id });
+    }
     res.status(500).json({ error: '删除失败' });
   }
 });
@@ -119,8 +143,14 @@ router.post('/reset-all', auth, requireActivated, async (req, res) => {
       { food_count: 0, pet_type: null, pet_name: null },
       { where: { class_id } }
     );
+    if (req.log) {
+      req.log('info', 'students.reset_all', { classId: class_id });
+    }
     res.json({ message: '全班进度已重置' });
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'students.reset_all_error', { error: err, classId: req.body?.class_id });
+    }
     res.status(500).json({ error: '重置失败' });
   }
 });
@@ -142,8 +172,14 @@ router.post('/random-pets', auth, requireActivated, async (req, res) => {
       await s.update({ pet_type: pet.id, pet_name: pet.name });
       count++;
     }
+    if (req.log) {
+      req.log('info', 'students.random_pets', { classId: class_id, assigned: count });
+    }
     res.json({ message: `已为${count}名学生随机分配宠物` });
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'students.random_pets_error', { error: err, classId: req.body?.class_id });
+    }
     res.status(500).json({ error: '分配失败' });
   }
 });

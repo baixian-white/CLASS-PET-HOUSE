@@ -22,6 +22,10 @@ router.post('/evaluate', auth, requireActivated, async (req, res) => {
         });
         if (!student) return res.status(404).json({ error: '学生不存在' });
 
+        if (req.log) {
+            req.log('info', 'ai.evaluate.start', { classId, studentId });
+        }
+
         // 查询最近30天的历史记录
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
         const histories = await History.findAll({
@@ -72,6 +76,9 @@ router.post('/evaluate', auth, requireActivated, async (req, res) => {
         const model = process.env.AI_MODEL || 'deepseek-chat';
 
         if (!apiKey) {
+            if (req.log) {
+                req.log('warn', 'ai.evaluate.missing_api_key');
+            }
             return res.status(400).json({ error: 'AI未配置，请在设置中配置AI API Key' });
         }
 
@@ -92,7 +99,12 @@ router.post('/evaluate', auth, requireActivated, async (req, res) => {
 
         if (!response.ok) {
             const errText = await response.text();
-            console.error('AI API error:', errText);
+            if (req.log) {
+                req.log('error', 'ai.evaluate.api_error', {
+                    status: response.status,
+                    body: errText?.slice(0, 200)
+                });
+            }
             return res.status(502).json({ error: 'AI服务调用失败' });
         }
 
@@ -133,7 +145,9 @@ router.post('/evaluate', auth, requireActivated, async (req, res) => {
 
         res.end();
     } catch (err) {
-        console.error('AI evaluate error:', err);
+        if (req.log) {
+            req.log('error', 'ai.evaluate.error', { error: err });
+        }
         if (!res.headersSent) {
             res.status(500).json({ error: '生成评语失败' });
         }
@@ -147,6 +161,10 @@ router.post('/generate-pet-name', auth, requireActivated, async (req, res) => {
     try {
         const { studentName, petType } = req.body;
         if (!studentName || !petType) return res.status(400).json({ error: '参数不完整' });
+
+        if (req.log) {
+            req.log('info', 'ai.generate_pet_name.start', { petType });
+        }
 
         const themes = [
             '干饭人专属，全是以好吃的、零食结尾（如：X芋泥、X小土豆、X波波）',
@@ -176,7 +194,12 @@ router.post('/generate-pet-name', auth, requireActivated, async (req, res) => {
         const apiUrl = process.env.AI_API_URL || 'https://api.deepseek.com/v1/chat/completions';
         const model = process.env.AI_MODEL || 'deepseek-chat';
 
-        if (!apiKey) return res.status(400).json({ error: '未配置AI API Key' });
+        if (!apiKey) {
+            if (req.log) {
+                req.log('warn', 'ai.generate_pet_name.missing_api_key');
+            }
+            return res.status(400).json({ error: '未配置AI API Key' });
+        }
 
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -192,7 +215,12 @@ router.post('/generate-pet-name', auth, requireActivated, async (req, res) => {
 
         if (!response.ok) {
             const errText = await response.text();
-            console.error('AI API error:', errText);
+            if (req.log) {
+                req.log('error', 'ai.generate_pet_name.api_error', {
+                    status: response.status,
+                    body: errText?.slice(0, 200)
+                });
+            }
             return res.status(502).json({ error: 'AI服务调用失败' });
         }
 
@@ -200,7 +228,9 @@ router.post('/generate-pet-name', auth, requireActivated, async (req, res) => {
         const content = data.choices?.[0]?.message?.content?.trim() || '大聪明';
         res.json({ name: content });
     } catch (err) {
-        console.error('AI generate name error:', err);
+        if (req.log) {
+            req.log('error', 'ai.generate_pet_name.error', { error: err });
+        }
         res.status(500).json({ error: '生成名字失败' });
     }
 });
@@ -215,6 +245,10 @@ router.post('/weekly-report', auth, requireActivated, async (req, res) => {
 
         const cls = await Class.findOne({ where: { id: classId, user_id: req.userId } });
         if (!cls) return res.status(404).json({ error: '班级不存在' });
+
+        if (req.log) {
+            req.log('info', 'ai.weekly_report.start', { classId, days });
+        }
 
         const students = await Student.findAll({
             where: { class_id: classId },
@@ -280,6 +314,9 @@ ${studentSummaries}
         const model = process.env.AI_MODEL || 'deepseek-chat';
 
         if (!apiKey) {
+            if (req.log) {
+                req.log('warn', 'ai.weekly_report.missing_api_key');
+            }
             return res.status(400).json({ error: 'AI未配置，请在设置中配置AI API Key' });
         }
 
@@ -300,7 +337,12 @@ ${studentSummaries}
 
         if (!response.ok) {
             const errText = await response.text();
-            console.error('AI API error:', errText);
+            if (req.log) {
+                req.log('error', 'ai.weekly_report.api_error', {
+                    status: response.status,
+                    body: errText?.slice(0, 200)
+                });
+            }
             return res.status(502).json({ error: 'AI服务调用失败' });
         }
 
@@ -340,7 +382,9 @@ ${studentSummaries}
 
         res.end();
     } catch (err) {
-        console.error('AI weekly-report error:', err);
+        if (req.log) {
+            req.log('error', 'ai.weekly_report.error', { error: err });
+        }
         if (!res.headersSent) {
             res.status(500).json({ error: '生成周报失败' });
         }
@@ -357,8 +401,18 @@ router.post('/config', auth, requireActivated, async (req, res) => {
         if (apiKey) process.env.AI_API_KEY = apiKey;
         if (apiUrl) process.env.AI_API_URL = apiUrl;
         if (model) process.env.AI_MODEL = model;
+        if (req.log) {
+            req.log('info', 'ai.config.updated', {
+                hasKey: !!apiKey,
+                apiUrl: apiUrl || process.env.AI_API_URL,
+                model: model || process.env.AI_MODEL
+            });
+        }
         res.json({ message: '配置已保存' });
     } catch (err) {
+        if (req.log) {
+            req.log('error', 'ai.config.error', { error: err });
+        }
         res.status(500).json({ error: '保存失败' });
     }
 });

@@ -13,6 +13,9 @@ router.get('/', auth, requireActivated, async (req, res) => {
     });
     res.json(classes);
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'classes.list_error', { error: err });
+    }
     res.status(500).json({ error: '获取失败' });
   }
 });
@@ -31,8 +34,14 @@ router.post('/', auth, requireActivated, async (req, res) => {
       name: name.trim(),
       sort_order: count
     });
+    if (req.log) {
+      req.log('info', 'classes.create', { classId: cls.id, name: cls.name });
+    }
     res.json(cls);
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'classes.create_error', { error: err });
+    }
     res.status(500).json({ error: '创建失败' });
   }
 });
@@ -64,8 +73,14 @@ router.put('/:id', auth, requireActivated, async (req, res) => {
       ...(growth_stages !== undefined && { growth_stages }),
       ...(sort_order !== undefined && { sort_order })
     });
+    if (req.log) {
+      req.log('info', 'classes.update', { classId: cls.id });
+    }
     res.json(cls);
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'classes.update_error', { error: err, classId: req.params.id });
+    }
     res.status(500).json({ error: '更新失败' });
   }
 });
@@ -90,9 +105,15 @@ router.delete('/:id', auth, requireActivated, async (req, res) => {
     await cls.destroy({ transaction: t });
 
     await t.commit();
+    if (req.log) {
+      req.log('info', 'classes.delete', { classId: cls.id });
+    }
     res.json({ message: '删除成功' });
   } catch (err) {
     if (t) await t.rollback();
+    if (req.log) {
+      req.log('error', 'classes.delete_error', { error: err, classId: req.params.id });
+    }
     res.status(500).json({ error: '删除失败' });
   }
 });
@@ -128,8 +149,14 @@ router.post('/copy-config', auth, requireActivated, async (req, res) => {
       });
     }
 
+    if (req.log) {
+      req.log('info', 'classes.copy_config', { fromClassId: from_class_id, toClassId: to_class_id });
+    }
     res.json({ message: '配置复制成功' });
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'classes.copy_config_error', { error: err });
+    }
     res.status(500).json({ error: '复制失败' });
   }
 });

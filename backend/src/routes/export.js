@@ -123,6 +123,13 @@ router.post('/certificate', auth, requireActivated, async (req, res) => {
     const badges = student.badges || [];
     const indexes = badge_indexes || badges.map((_, i) => i);
     const exportDate = date || new Date().toISOString().split('T')[0];
+    if (req.log) {
+      req.log('info', 'export.certificate.start', {
+        studentId: student_id,
+        type: type || 'cert',
+        count: indexes.length
+      });
+    }
 
     if (indexes.length === 1) {
       const badge = badges[indexes[0]];
@@ -153,7 +160,13 @@ router.post('/certificate', auth, requireActivated, async (req, res) => {
       archive.append(stickerBuf, { name: `sticker_${idx + 1}.png` });
     }
     await archive.finalize();
+    if (req.log) {
+      req.log('info', 'export.certificate.zip_done', { studentId: student_id, count: indexes.length });
+    }
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'export.certificate_error', { error: err, studentId: req.body?.student_id });
+    }
     res.status(500).json({ error: '导出失败' });
   }
 });
@@ -167,6 +180,9 @@ router.post('/batch', auth, requireActivated, async (req, res) => {
 
     const students = await Student.findAll({ where: { class_id } });
     const exportDate = date || new Date().toISOString().split('T')[0];
+    if (req.log) {
+      req.log('info', 'export.batch.start', { classId: class_id, students: students.length, type: type || 'cert' });
+    }
 
     res.set('Content-Type', 'application/zip');
     res.set('Content-Disposition', `attachment; filename="batch_export.zip"`);
@@ -191,7 +207,13 @@ router.post('/batch', auth, requireActivated, async (req, res) => {
     }
 
     await archive.finalize();
+    if (req.log) {
+      req.log('info', 'export.batch.done', { classId: class_id, students: students.length });
+    }
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'export.batch_error', { error: err, classId: req.body?.class_id });
+    }
     res.status(500).json({ error: '批量导出失败' });
   }
 });

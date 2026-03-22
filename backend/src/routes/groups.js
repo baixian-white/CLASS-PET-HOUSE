@@ -16,6 +16,9 @@ router.get('/class/:classId', auth, requireActivated, async (req, res) => {
     });
     res.json(groups);
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'groups.list_error', { error: err, classId: req.params.classId });
+    }
     res.status(500).json({ error: '获取失败' });
   }
 });
@@ -32,8 +35,14 @@ router.post('/', auth, requireActivated, async (req, res) => {
     if (count >= 50) return res.status(400).json({ error: '最多创建50个分组' });
 
     const group = await Group.create({ class_id, name, sort_order: count });
+    if (req.log) {
+      req.log('info', 'groups.create', { classId: class_id, groupId: group.id });
+    }
     res.json(group);
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'groups.create_error', { error: err, classId: req.body?.class_id });
+    }
     res.status(500).json({ error: '创建失败' });
   }
 });
@@ -55,8 +64,14 @@ router.put('/:id', auth, requireActivated, async (req, res) => {
       ...(name !== undefined && { name: name.trim() }),
       ...(sort_order !== undefined && { sort_order })
     });
+    if (req.log) {
+      req.log('info', 'groups.update', { groupId: group.id, classId: group.class_id });
+    }
     res.json(group);
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'groups.update_error', { error: err, groupId: req.params.id });
+    }
     res.status(500).json({ error: '更新失败' });
   }
 });
@@ -73,8 +88,14 @@ router.delete('/:id', auth, requireActivated, async (req, res) => {
     // 将该组学生设为未分组
     await Student.update({ group_id: null }, { where: { group_id: group.id } });
     await group.destroy();
+    if (req.log) {
+      req.log('info', 'groups.delete', { groupId: group.id, classId: group.class_id });
+    }
     res.json({ message: '删除成功' });
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'groups.delete_error', { error: err, groupId: req.params.id });
+    }
     res.status(500).json({ error: '删除失败' });
   }
 });
@@ -102,8 +123,14 @@ router.post('/random-assign', auth, requireActivated, async (req, res) => {
       await shuffled[i].update({ group_id: group.id });
     }
 
+    if (req.log) {
+      req.log('info', 'groups.random_assign', { classId: class_id, groups: groups.length, students: shuffled.length });
+    }
     res.json({ message: '随机分组完成' });
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'groups.random_assign_error', { error: err, classId: req.body?.class_id });
+    }
     res.status(500).json({ error: '随机分组失败' });
   }
 });

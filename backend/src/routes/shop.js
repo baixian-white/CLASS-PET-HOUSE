@@ -16,6 +16,9 @@ router.get('/class/:classId', auth, requireActivated, async (req, res) => {
     });
     res.json(items);
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'shop.list_error', { error: err, classId: req.params.classId });
+    }
     res.status(500).json({ error: '获取失败' });
   }
 });
@@ -33,8 +36,14 @@ router.post('/', auth, requireActivated, async (req, res) => {
     if (itemCount >= 100) return res.status(400).json({ error: '最多创建100个商品' });
 
     const item = await ShopItem.create({ class_id, name, description, icon, price, stock: stock ?? -1 });
+    if (req.log) {
+      req.log('info', 'shop.create', { classId: class_id, itemId: item.id });
+    }
     res.json(item);
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'shop.create_error', { error: err, classId: req.body?.class_id });
+    }
     res.status(500).json({ error: '添加失败' });
   }
 });
@@ -59,8 +68,14 @@ router.put('/:id', auth, requireActivated, async (req, res) => {
       ...(price !== undefined && { price }),
       ...(stock !== undefined && { stock })
     });
+    if (req.log) {
+      req.log('info', 'shop.update', { itemId: item.id, classId: item.class_id });
+    }
     res.json(item);
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'shop.update_error', { error: err, itemId: req.params.id });
+    }
     res.status(500).json({ error: '更新失败' });
   }
 });
@@ -75,8 +90,14 @@ router.delete('/:id', auth, requireActivated, async (req, res) => {
     if (!cls) return res.status(403).json({ error: '无权限' });
 
     await item.destroy();
+    if (req.log) {
+      req.log('info', 'shop.delete', { itemId: item.id, classId: item.class_id });
+    }
     res.json({ message: '删除成功' });
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'shop.delete_error', { error: err, itemId: req.params.id });
+    }
     res.status(500).json({ error: '删除失败' });
   }
 });
@@ -124,9 +145,15 @@ router.post('/exchange', auth, requireActivated, async (req, res) => {
     }, { transaction: t });
 
     await t.commit();
+    if (req.log) {
+      req.log('info', 'shop.exchange', { classId: class_id, studentId: student_id, itemId: item_id });
+    }
     res.json({ message: '兑换成功', record });
   } catch (err) {
     if (t) await t.rollback();
+    if (req.log) {
+      req.log('error', 'shop.exchange_error', { error: err, classId: req.body?.class_id });
+    }
     res.status(500).json({ error: '兑换失败' });
   }
 });
@@ -145,6 +172,9 @@ router.get('/exchange/:classId', auth, requireActivated, async (req, res) => {
     });
     res.json(records);
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'shop.exchange_list_error', { error: err, classId: req.params.classId });
+    }
     res.status(500).json({ error: '获取失败' });
   }
 });
