@@ -5,6 +5,7 @@ const { User, Class, ScoreRule, License, sequelize } = require('../models');
 const auth = require('../middleware/auth');
 const { ApiError } = require('../lib/api-error');
 const { phoneVerificationService } = require('../services/sms');
+const logger = require('../utils/logger');
 
 const TEACHER_REGISTER_SCENE = 'teacher_register';
 
@@ -136,6 +137,9 @@ router.post('/register', async (req, res) => {
     await t.commit();
     await phoneVerificationService.consumeCode(TEACHER_REGISTER_SCENE, normalizedPhone);
     const token = generateToken(user);
+    if (req.log) {
+      req.log('info', 'auth.register.success', { userId: user.id, username: user.username });
+    }
 
     res.json({
       token,
@@ -144,6 +148,11 @@ router.post('/register', async (req, res) => {
     });
   } catch (err) {
     if (t) await t.rollback();
+    if (req.log) {
+      req.log('error', 'auth.register.error', { error: err });
+    } else {
+      logger.error('auth.register.error', { error: err });
+    }
     respondServiceError(res, err, '注册激活失败');
   }
 });
@@ -153,19 +162,33 @@ router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username || !password || typeof username !== 'string' || typeof password !== 'string') {
+      if (req.log) {
+        req.log('warn', 'auth.login.invalid_input', { username });
+      }
       return res.status(401).json({ error: '用户名或密码错误' });
     }
     const user = await User.findOne({ where: { username } });
     if (!user || !(await user.comparePassword(password))) {
+      if (req.log) {
+        req.log('warn', 'auth.login.failed', { username });
+      }
       return res.status(401).json({ error: '用户名或密码错误' });
     }
     const token = generateToken(user);
+    if (req.log) {
+      req.log('info', 'auth.login.success', { userId: user.id, username: user.username, activated: user.is_activated });
+    }
     res.json({
       token,
       user: { id: user.id, username: user.username, is_activated: user.is_activated },
       status: user.is_activated ? 'authenticated' : 'not_activated'
     });
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'auth.login.error', { error: err });
+    } else {
+      logger.error('auth.login.error', { error: err });
+    }
     res.status(500).json({ error: '登录失败' });
   }
 });
@@ -200,9 +223,17 @@ router.post('/activate', auth, async (req, res) => {
     }
 
     await t.commit();
+    if (req.log) {
+      req.log('info', 'auth.activate.success', { userId: req.userId });
+    }
     res.json({ message: '激活成功', user: { id: req.user.id, username: req.user.username, is_activated: true } });
   } catch (err) {
     if (t) await t.rollback();
+    if (req.log) {
+      req.log('error', 'auth.activate.error', { error: err, userId: req.userId });
+    } else {
+      logger.error('auth.activate.error', { error: err, userId: req.userId });
+    }
     res.status(500).json({ error: '激活失败' });
   }
 });
@@ -221,6 +252,9 @@ router.get('/check', auth, (req, res) => {
 
 // 退出登录
 router.post('/logout', auth, (req, res) => {
+  if (req.log) {
+    req.log('info', 'auth.logout', { userId: req.userId });
+  }
   res.json({ message: '已退出' });
 });
 
@@ -238,8 +272,16 @@ router.put('/change-password', auth, async (req, res) => {
 
     const hash = await bcrypt.hash(newPassword, 10);
     await req.user.update({ password_hash: hash });
+    if (req.log) {
+      req.log('info', 'auth.change_password.success', { userId: req.userId });
+    }
     res.json({ message: '密码修改成功' });
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'auth.change_password.error', { error: err, userId: req.userId });
+    } else {
+      logger.error('auth.change_password.error', { error: err, userId: req.userId });
+    }
     res.status(500).json({ error: '修改失败' });
   }
 });
@@ -258,8 +300,16 @@ router.post('/reset-password', async (req, res) => {
 
     const hash = await bcrypt.hash(newPassword, 10);
     await user.update({ password_hash: hash });
+    if (req.log) {
+      req.log('info', 'auth.reset_password.success', { username });
+    }
     res.json({ message: '密码重置成功' });
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'auth.reset_password.error', { error: err, username });
+    } else {
+      logger.error('auth.reset_password.error', { error: err, username });
+    }
     res.status(500).json({ error: '重置失败' });
   }
 });

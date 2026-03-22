@@ -2,41 +2,60 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = rateLimit;
 const sanitize = require('./middleware/sanitize');
+const requestLogger = require('./middleware/requestLogger');
+const logger = require('./utils/logger');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const app = express();
 
-// 信任反向代理（解决 Docker/Nginx 下的 429 IP 被群封限流问题）
-// 这样 express-rate-limit 才能获取到用户的真实 IP，否则所有的请求可能都被认为是来自同一个反向代理 IP
 app.set('trust proxy', 1);
 
-// 中间件
+// Request context + http logs
+app.use(requestLogger);
+
+// 中间�?
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(sanitize);
 
-// ====== 用于排查测试 IP 是否获取正确的日志中间件 ======
-app.use((req, res, next) => {
-  // 只过滤查看登录相关的请求日志，避免不相关的接口日志太多刷屏
-  if (req.path.includes('/login')) {
-    console.log(`[IP DEBUG] Time: ${new Date().toISOString()}`);
-    console.log(`[IP DEBUG] Path: ${req.path}`);
-    console.log(`[IP DEBUG] req.ip: ${req.ip}`); 
-    console.log(`[IP DEBUG] X-Forwarded-For: ${req.headers['x-forwarded-for']}`);
-    // 修复 Node.js 新版本中 req.connection 为 undefined 导致的 500 崩溃
-    console.log(`[IP DEBUG] Direct RemoteIP: ${req.socket?.remoteAddress}`);
-    console.log("-----------------------------------------");
-  }
-  next();
-});
-// ============================================
+// Optional IP debug logging (disabled by default)
+if (process.env.LOG_IP_DEBUG === '1') {
+  app.use((req, res, next) => {
+    if (req.path.includes('/login')) {
+      req.log('debug', 'auth.ip_debug', {
+        ip: req.ip,
+        xForwardedFor: req.headers['x-forwarded-for'],
+        remoteAddress: req.socket?.remoteAddress
+      });
+    }
+    next();
+  });
+}
 
-// 速率限制：认证接口
+// 速率限制：认证接�?
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 50,
+  // Use IP + username to avoid NAT users blocking each other.
+  keyGenerator: (req) => {
+    const username = typeof req.body?.username === 'string' ? req.body.username : '';
+    return `${ipKeyGenerator(req.ip)}:${username}`;
+  },
+  handler: (req, res, _next, options) => {
+    const username = typeof req.body?.username === 'string' ? req.body.username : '';
+    if (req.log) {
+      req.log('warn', 'auth.rate_limited', {
+        ip: req.ip,
+        username,
+        windowMs: options.windowMs,
+        max: 50
+      });
+    }
+    res.status(options.statusCode).json(options.message);
+  },
   message: { error: '请求过于频繁，请稍后再试' }
 });
 app.use('/api/auth/register', authLimiter);
@@ -46,7 +65,7 @@ app.use('/api/auth/send-register-code', authLimiter);
 app.use('/api/student-portal/login', authLimiter);
 app.use('/api/student-portal/send-register-code', authLimiter);
 
-// 静态文件（宠物图片）
+// 静态文件（宠物图片�?
 const petImagesStatic = express.static(path.join(__dirname, '../../assets/pets'));
 app.use('/pet-images', petImagesStatic);
 app.use('/动物图片', petImagesStatic);
@@ -82,12 +101,12 @@ app.use('/api/backgrounds', backgroundRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/student-portal', studentPortalRoutes);
 
-// 健康检查
+// 健康检�?
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
-// 生产环境：可选 serve 前端静态文件（找不到 dist 时不阻塞后端）
+// 生产环境：可�?serve 前端静态文件（找不�?dist 时不阻塞后端�?
 if (process.env.NODE_ENV === 'production') {
   const fs = require('fs');
   const frontendDist = path.join(__dirname, '../../frontend/dist');
@@ -104,5 +123,15 @@ if (process.env.NODE_ENV === 'production') {
     console.warn(`[static] frontend dist not found: ${indexHtml}`);
   }
 }
+
+// Fallback error handler
+app.use((err, req, res, next) => {
+  logger.error('http.unhandled_error', {
+    requestId: req.requestId,
+    error: err
+  });
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: '\u670d\u52a1\u5668\u5185\u90e8\u9519\u8bef' });
+});
 
 module.exports = app;

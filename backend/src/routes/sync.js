@@ -20,9 +20,15 @@ router.get('/stream', auth, (req, res) => {
     const oldest = userClients.values().next().value;
     oldest.end();
     userClients.delete(oldest);
+    if (req.log) {
+      req.log('warn', 'sync.connection_evicted', { userId, limit: 5 });
+    }
   }
 
   userClients.add(res);
+  if (req.log) {
+    req.log('info', 'sync.connected', { userId, connections: userClients.size });
+  }
 
   res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
 
@@ -36,6 +42,9 @@ router.get('/stream', auth, (req, res) => {
     if (userClients) {
       userClients.delete(res);
       if (userClients.size === 0) clients.delete(userId);
+    }
+    if (req.log) {
+      req.log('info', 'sync.disconnected', { userId });
     }
   });
 });

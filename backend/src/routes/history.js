@@ -29,6 +29,9 @@ router.get('/class/:classId', auth, requireActivated, async (req, res) => {
     });
     res.json(history);
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'history.list_error', { error: err, classId: req.params.classId });
+    }
     res.status(500).json({ error: '获取失败' });
   }
 });
@@ -55,6 +58,9 @@ router.post('/', auth, requireActivated, async (req, res) => {
         });
         results.push({ student_id: sid, record_id: record.id });
       }
+      if (req.log) {
+        req.log('info', 'history.create', { classId: class_id, type: 'graduate', count: results.length });
+      }
       return res.json({ results });
     }
 
@@ -78,9 +84,15 @@ router.post('/', auth, requireActivated, async (req, res) => {
 
     res.json({ results });
 
+    if (req.log) {
+      req.log('info', 'history.create', { classId: class_id, type: 'score', count: results.length });
+    }
     // SSE 广播通知前端刷新
     broadcast(req.userId, { type: 'score_update', class_id, results });
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'history.create_error', { error: err, classId: req.body?.class_id });
+    }
     res.status(500).json({ error: '操作失败' });
   }
 });
@@ -103,8 +115,14 @@ router.post('/revoke', auth, requireActivated, async (req, res) => {
     }
 
     await record.update({ is_revoked: true });
+    if (req.log) {
+      req.log('info', 'history.revoke', { recordId: record_id, classId: record.class_id });
+    }
     res.json({ message: '撤回成功' });
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'history.revoke_error', { error: err, recordId: req.body?.record_id });
+    }
     res.status(500).json({ error: '撤回失败' });
   }
 });
@@ -131,8 +149,14 @@ router.post('/revoke-batch', auth, requireActivated, async (req, res) => {
       await record.update({ is_revoked: true });
       count++;
     }
+    if (req.log) {
+      req.log('info', 'history.revoke_batch', { count });
+    }
     res.json({ message: `已撤回${count}条记录` });
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'history.revoke_batch_error', { error: err });
+    }
     res.status(500).json({ error: '批量撤回失败' });
   }
 });
@@ -153,8 +177,14 @@ router.post('/batch-delete', auth, requireActivated, async (req, res) => {
     }
 
     await History.destroy({ where: { id: record_ids } });
+    if (req.log) {
+      req.log('info', 'history.batch_delete', { count: record_ids.length });
+    }
     res.json({ message: '删除成功' });
   } catch (err) {
+    if (req.log) {
+      req.log('error', 'history.batch_delete_error', { error: err });
+    }
     res.status(500).json({ error: '删除失败' });
   }
 });

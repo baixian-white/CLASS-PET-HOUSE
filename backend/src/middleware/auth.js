@@ -1,10 +1,14 @@
 const jwt = require('jsonwebtoken');
 const { User, StudentAccount } = require('../models');
+const logger = require('../utils/logger');
 
 const auth = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) {
+      if (req.log) {
+        req.log('warn', 'auth.missing_token', { ip: req.ip });
+      }
       return res.status(401).json({ error: '未登录' });
     }
 
@@ -17,6 +21,9 @@ const auth = async (req, res, next) => {
 
     const user = await User.findByPk(decoded.id);
     if (!user) {
+      if (req.log) {
+        req.log('warn', 'auth.user_not_found', { ip: req.ip, userId: decoded.id });
+      }
       return res.status(401).json({ error: '用户不存在' });
     }
 
@@ -25,7 +32,15 @@ const auth = async (req, res, next) => {
     next();
   } catch (err) {
     if (err.name === 'TokenExpiredError') {
+      if (req.log) {
+        req.log('warn', 'auth.token_expired', { ip: req.ip });
+      }
       return res.status(401).json({ error: '登录已过期' });
+    }
+    if (req.log) {
+      req.log('warn', 'auth.invalid_token', { ip: req.ip, error: err });
+    } else {
+      logger.warn('auth.invalid_token', { error: err });
     }
     return res.status(401).json({ error: '认证失败' });
   }
