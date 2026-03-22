@@ -35,7 +35,12 @@ app.use((req, res, next) => {
 // 速率限制：认证接口
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 50,
+  // Use IP + username to avoid NAT users blocking each other.
+  keyGenerator: (req) => {
+    const username = typeof req.body?.username === 'string' ? req.body.username : '';
+    return `${req.ip}:${username}`;
+  },
   message: { error: '请求过于频繁，请稍后再试' }
 });
 app.use('/api/auth/register', authLimiter);
